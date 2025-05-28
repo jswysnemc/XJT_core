@@ -1,8 +1,11 @@
 package com.ljp.xjt.config;
 
+import com.ljp.xjt.security.handler.JwtAccessDeniedHandler;
+import com.ljp.xjt.security.handler.JwtAuthenticationEntryPoint;
 import com.ljp.xjt.security.jwt.JwtAuthenticationFilter;
 import com.ljp.xjt.service.UserService;
 import com.ljp.xjt.service.impl.UserDetailsServiceImpl;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -21,17 +24,21 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 /**
  * Spring Security配置类
  * <p>
- * 配置Spring Security，包括用户认证服务、密码编码器、JWT认证以及HTTP安全规则。
+ * 配置Spring Security，包括用户认证服务、密码编码器、JWT认证、自定义异常处理以及HTTP安全规则。
  * 后续将集成JWT认证和权限控制。
  * </p>
  * 
  * @author ljp
- * @version 1.3
+ * @version 1.4
  * @since 2025-05-29
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     /**
      * 配置密码编码器
@@ -89,6 +96,10 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable) 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                .accessDeniedHandler(jwtAccessDeniedHandler)
+            )
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/auth/**", "/test/**").permitAll()
