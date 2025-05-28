@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -25,15 +26,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * Spring Security配置类
  * <p>
  * 配置Spring Security，包括用户认证服务、密码编码器、JWT认证、自定义异常处理以及HTTP安全规则。
- * 后续将集成JWT认证和权限控制。
+ * 启用方法级别的安全注解支持。
  * </p>
  * 
  * @author ljp
- * @version 1.4
+ * @version 1.5
  * @since 2025-05-29
  */
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
