@@ -49,6 +49,34 @@ public class Knife4jConfig {
     }
 
     /**
+     * 全局API分组 - 显示所有接口
+     *
+     * @return 全局API分组
+     */
+    @Bean
+    public GroupedOpenApi allApi() {
+        return GroupedOpenApi.builder()
+                .group("00-全部接口")
+                .pathsToMatch("/**")
+                .packagesToScan("com.ljp.xjt.controller")
+                .build();
+    }
+
+    /**
+     * 认证模块API分组
+     *
+     * @return 测试信息模块API分组
+     */
+    @Bean
+    public GroupedOpenApi infoApi() {
+        return GroupedOpenApi.builder()
+                .group("00-信息模块")
+                .pathsToMatch("/test/**")
+                .packagesToScan("com.ljp.xjt.controller")
+                .build();
+    }
+
+    /**
      * 认证模块API分组
      *
      * @return 认证模块API分组
@@ -58,6 +86,7 @@ public class Knife4jConfig {
         return GroupedOpenApi.builder()
                 .group("01-认证模块")
                 .pathsToMatch("/auth/**")
+                .packagesToScan("com.ljp.xjt.controller")
                 .build();
     }
 
@@ -71,6 +100,7 @@ public class Knife4jConfig {
         return GroupedOpenApi.builder()
                 .group("02-学生模块")
                 .pathsToMatch("/student/**")
+                .packagesToScan("com.ljp.xjt.controller")
                 .build();
     }
 
@@ -84,6 +114,7 @@ public class Knife4jConfig {
         return GroupedOpenApi.builder()
                 .group("03-教师模块")
                 .pathsToMatch("/teacher/**")
+                .packagesToScan("com.ljp.xjt.controller")
                 .build();
     }
 
@@ -97,6 +128,7 @@ public class Knife4jConfig {
         return GroupedOpenApi.builder()
                 .group("04-管理员模块")
                 .pathsToMatch("/admin/**")
+                .packagesToScan("com.ljp.xjt.controller")
                 .build();
     }
 
@@ -110,6 +142,7 @@ public class Knife4jConfig {
         return GroupedOpenApi.builder()
                 .group("05-公共模块")
                 .pathsToMatch("/common/**", "/file/**", "/test/**")
+                .packagesToScan("com.ljp.xjt.controller")
                 .build();
     }
 
