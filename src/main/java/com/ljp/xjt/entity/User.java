@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 /**
  * 用户实体类
@@ -45,5 +46,15 @@ public class User {
 
     @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedTime;  // 更新时间
+
+    /**
+     * 用户角色集合
+     * <p>
+     * 通过中间表 user_roles 关联，一个用户可以有多个角色。
+     * 此字段不直接映射到users表的列。
+     * </p>
+     */
+    @TableField(exist = false)
+    private Set<Role> roles;            // 用户拥有的角色集合
 
 } 

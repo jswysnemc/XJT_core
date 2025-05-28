@@ -6,12 +6,18 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.common.exception.BusinessException;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.mapper.RoleMapper;
 import com.ljp.xjt.mapper.UserMapper;
 import com.ljp.xjt.service.UserService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.Set;
 
 /**
  * 用户服务实现类
@@ -23,11 +29,14 @@ import org.springframework.util.StringUtils;
  * @version 1.0
  * @since 2025-05-26
  */
-@Slf4j
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
+    private final @Lazy PasswordEncoder passwordEncoder;
 
     @Override
     public User getUserByUsername(String username) {
@@ -54,168 +63,118 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Transactional
     public boolean createUser(User user) {
-        // 1. 参数验证
-        if (user == null || !StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
-            throw new BusinessException("用户名和密码不能为空");
-        }
-
-        // 2. 检查用户名是否已存在
         if (isUsernameExists(user.getUsername())) {
             throw new BusinessException("用户名已存在");
         }
-
-        // 3. 检查邮箱是否已存在
         if (StringUtils.hasText(user.getEmail()) && isEmailExists(user.getEmail())) {
             throw new BusinessException("邮箱已存在");
         }
-
-        // 4. 检查手机号是否已存在
         if (StringUtils.hasText(user.getPhone()) && isPhoneExists(user.getPhone())) {
             throw new BusinessException("手机号已存在");
         }
-
-        // 5. 密码加密
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-        // 6. 设置默认状态
-        if (user.getStatus() == null) {
-            user.setStatus(1); // 默认启用
-        }
-
-        log.info("Creating new user: {}", user.getUsername());
         return save(user);
     }
 
     @Override
+    @Transactional
     public boolean updateUser(User user) {
-        // 1. 参数验证
-        if (user == null || user.getId() == null) {
-            throw new BusinessException("用户ID不能为空");
-        }
-
-        // 2. 检查用户是否存在
         User existingUser = getById(user.getId());
         if (existingUser == null) {
             throw new BusinessException("用户不存在");
         }
-
-        // 3. 检查用户名是否重复（排除自己）
-        if (StringUtils.hasText(user.getUsername()) && !user.getUsername().equals(existingUser.getUsername())) {
-            if (isUsernameExists(user.getUsername())) {
-                throw new BusinessException("用户名已存在");
-            }
+        // 检查邮箱和手机号是否与其他用户冲突
+        if (StringUtils.hasText(user.getEmail()) && !user.getEmail().equals(existingUser.getEmail()) && isEmailExists(user.getEmail())) {
+            throw new BusinessException("邮箱已被其他用户使用");
+        }
+        if (StringUtils.hasText(user.getPhone()) && !user.getPhone().equals(existingUser.getPhone()) && isPhoneExists(user.getPhone())) {
+            throw new BusinessException("手机号已被其他用户使用");
         }
 
-        // 4. 检查邮箱是否重复（排除自己）
-        if (StringUtils.hasText(user.getEmail()) && !user.getEmail().equals(existingUser.getEmail())) {
-            if (isEmailExists(user.getEmail())) {
-                throw new BusinessException("邮箱已存在");
-            }
-        }
-
-        // 5. 检查手机号是否重复（排除自己）
-        if (StringUtils.hasText(user.getPhone()) && !user.getPhone().equals(existingUser.getPhone())) {
-            if (isPhoneExists(user.getPhone())) {
-                throw new BusinessException("手机号已存在");
-            }
-        }
-
-        // 6. 如果有新密码，进行加密
+        // 如果密码字段不为空，则更新密码
         if (StringUtils.hasText(user.getPassword())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         } else {
-            user.setPassword(null); // 不更新密码
+            // 否则，保持原有密码不变
+            user.setPassword(existingUser.getPassword());
         }
-
-        log.info("Updating user: {}", user.getUsername());
         return updateById(user);
     }
 
     @Override
+    @Transactional
     public boolean disableUser(Long userId) {
-        if (userId == null) {
-            throw new BusinessException("用户ID不能为空");
+        User user = getById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
         }
-
-        User user = new User();
-        user.setId(userId);
-        user.setStatus(0); // 设置为禁用
-
-        log.info("Disabling user with ID: {}", userId);
+        user.setStatus(0); // 0 表示禁用
         return updateById(user);
     }
 
     @Override
+    @Transactional
     public boolean enableUser(Long userId) {
-        if (userId == null) {
-            throw new BusinessException("用户ID不能为空");
+        User user = getById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
         }
-
-        User user = new User();
-        user.setId(userId);
-        user.setStatus(1); // 设置为启用
-
-        log.info("Enabling user with ID: {}", userId);
+        user.setStatus(1); // 1 表示启用
         return updateById(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public IPage<User> getUserList(Page<User> page, String username, String email, Integer status) {
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        
-        // 1. 用户名模糊查询
         if (StringUtils.hasText(username)) {
             queryWrapper.like(User::getUsername, username);
         }
-        
-        // 2. 邮箱模糊查询
         if (StringUtils.hasText(email)) {
             queryWrapper.like(User::getEmail, email);
         }
-        
-        // 3. 状态精确查询
         if (status != null) {
             queryWrapper.eq(User::getStatus, status);
         }
-        
-        // 4. 按创建时间倒序排列
         queryWrapper.orderByDesc(User::getCreatedTime);
-
-        return page(page, queryWrapper);
+        return userMapper.selectPage(page, queryWrapper);
     }
 
     @Override
     public boolean isUsernameExists(String username) {
-        if (!StringUtils.hasText(username)) {
-            return false;
-        }
-        
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getUsername, username);
-        return count(queryWrapper) > 0;
+        return count(new LambdaQueryWrapper<User>().eq(User::getUsername, username)) > 0;
     }
 
     @Override
     public boolean isEmailExists(String email) {
-        if (!StringUtils.hasText(email)) {
-            return false;
-        }
-        
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getEmail, email);
-        return count(queryWrapper) > 0;
+        if (!StringUtils.hasText(email)) return false;
+        return count(new LambdaQueryWrapper<User>().eq(User::getEmail, email)) > 0;
     }
 
     @Override
     public boolean isPhoneExists(String phone) {
-        if (!StringUtils.hasText(phone)) {
-            return false;
+        if (!StringUtils.hasText(phone)) return false;
+        return count(new LambdaQueryWrapper<User>().eq(User::getPhone, phone)) > 0;
+    }
+
+    /**
+     * 根据用户名查询用户（包含角色信息）
+     *
+     * @param username 用户名
+     * @return 用户信息（包含角色），如果不存在则返回null
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public User findByUsername(String username) {
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+        if (user != null) {
+            // 查询并设置用户的角色信息
+            Set<com.ljp.xjt.entity.Role> roles = roleMapper.findRolesByUserId(user.getId());
+            user.setRoles(roles);
         }
-        
-        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(User::getPhone, phone);
-        return count(queryWrapper) > 0;
+        return user;
     }
 
 } 

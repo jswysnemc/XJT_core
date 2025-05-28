@@ -53,6 +53,19 @@ public class JwtUtils {
     }
 
     /**
+     * 生成JWT令牌 (仅根据用户名)
+     *
+     * @param username 用户名 (将作为JWT的subject)
+     * @return JWT令牌
+     */
+    public String generateToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        // 可以在这里添加其他非敏感的、通用的claims，如果需要的话
+        // claims.put("source", "student-grade-system"); 
+        return createToken(claims, username);
+    }
+
+    /**
      * 生成刷新令牌
      *
      * @param userId 用户ID
