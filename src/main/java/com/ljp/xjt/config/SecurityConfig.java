@@ -1,8 +1,8 @@
 package com.ljp.xjt.config;
 
+import com.ljp.xjt.security.jwt.JwtAuthenticationFilter;
 import com.ljp.xjt.service.UserService;
 import com.ljp.xjt.service.impl.UserDetailsServiceImpl;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -12,24 +12,25 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Spring Security配置类
  * <p>
- * 配置Spring Security，包括用户认证服务、密码编码器以及HTTP安全规则。
+ * 配置Spring Security，包括用户认证服务、密码编码器、JWT认证以及HTTP安全规则。
  * 后续将集成JWT认证和权限控制。
  * </p>
  * 
  * @author ljp
- * @version 1.2
+ * @version 1.3
  * @since 2025-05-29
  */
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     /**
@@ -80,16 +81,20 @@ public class SecurityConfig {
      * @throws Exception 配置异常
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, DaoAuthenticationProvider daoAuthenticationProvider) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, 
+                                           DaoAuthenticationProvider daoAuthenticationProvider, 
+                                           JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
-            .authenticationProvider(daoAuthenticationProvider) // 添加自定义的AuthenticationProvider
+            .authenticationProvider(daoAuthenticationProvider)
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable) 
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/auth/**", "/test/**").permitAll()
                 .anyRequest().authenticated()
-            );
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
