@@ -13,8 +13,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Knife4j配置类
  * <p>
- * 配置Swagger/OpenAPI文档，提供接口文档和在线测试功能
- * 支持JWT认证，按模块分组展示API接口
+ * 配置Knife4j OpenAPI3文档，提供接口文档和在线测试功能
+ * 支持JWT认证，按模块分组展示API接口，适配Spring Boot 3.x
  * </p>
  * 
  * @author ljp
@@ -109,7 +109,7 @@ public class Knife4jConfig {
     public GroupedOpenApi commonApi() {
         return GroupedOpenApi.builder()
                 .group("05-公共模块")
-                .pathsToMatch("/common/**", "/file/**")
+                .pathsToMatch("/common/**", "/file/**", "/test/**")
                 .build();
     }
 

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.UserMapper">
+
+    <!-- 通用结果映射 -->
+    <resultMap id="BaseResultMap" type="com.ljp.xjt.entity.User">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="username" property="username" jdbcType="VARCHAR"/>
+        <result column="password" property="password" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="created_time" property="createdTime" jdbcType="TIMESTAMP"/>
+        <result column="updated_time" property="updatedTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <!-- 根据用户名查询用户信息 -->
+    <select id="selectByUsername" resultMap="BaseResultMap">
+        SELECT 
+            id, username, password, email, phone, status, created_time, updated_time
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <!-- 根据邮箱查询用户信息 -->
+    <select id="selectByEmail" resultMap="BaseResultMap">
+        SELECT 
+            id, username, password, email, phone, status, created_time, updated_time
+        FROM users
+        WHERE email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- 根据手机号查询用户信息 -->
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT 
+            id, username, password, email, phone, status, created_time, updated_time
+        FROM users
+        WHERE phone = #{phone}
+        LIMIT 1
+    </select>
+
+</mapper> 

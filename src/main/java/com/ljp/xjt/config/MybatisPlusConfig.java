@@ -40,10 +40,10 @@ public class MybatisPlusConfig {
             @Override
             public void insertFill(MetaObject metaObject) {
                 // 1. 自动填充创建时间
-                this.strictInsertFill(metaObject, "createTime", LocalDateTime.class, LocalDateTime.now());
+                this.strictInsertFill(metaObject, "createdTime", LocalDateTime.class, LocalDateTime.now());
                 
                 // 2. 自动填充更新时间
-                this.strictInsertFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                this.strictInsertFill(metaObject, "updatedTime", LocalDateTime.class, LocalDateTime.now());
                 
                 // 3. 自动填充逻辑删除标记
                 this.strictInsertFill(metaObject, "deleted", Integer.class, 0);
@@ -57,7 +57,7 @@ public class MybatisPlusConfig {
             @Override
             public void updateFill(MetaObject metaObject) {
                 // 1. 自动填充更新时间
-                this.strictUpdateFill(metaObject, "updateTime", LocalDateTime.class, LocalDateTime.now());
+                this.strictUpdateFill(metaObject, "updatedTime", LocalDateTime.class, LocalDateTime.now());
             }
         };
     }
