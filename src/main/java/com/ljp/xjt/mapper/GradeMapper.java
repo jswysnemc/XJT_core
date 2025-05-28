@@ -1,0 +1,97 @@
+package com.ljp.xjt.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ljp.xjt.entity.Grade;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+/**
+ * 成绩Mapper接口
+ * <p>
+ * 提供成绩相关的数据访问操作，包括成绩查询、统计分析等核心业务功能
+ * </p>
+ * 
+ * @author ljp
+ * @version 1.0
+ * @since 2025-05-26
+ */
+@Mapper
+public interface GradeMapper extends BaseMapper<Grade> {
+
+    /**
+     * 根据学生ID和课程ID查询成绩
+     *
+     * @param studentId 学生ID
+     * @param courseId 课程ID
+     * @param semester 学期（可选）
+     * @param year 学年（可选）
+     * @return 成绩列表
+     */
+    List<Grade> selectByStudentAndCourse(@Param("studentId") Long studentId,
+                                        @Param("courseId") Long courseId,
+                                        @Param("semester") String semester,
+                                        @Param("year") Integer year);
+
+    /**
+     * 根据学生ID查询所有成绩
+     *
+     * @param studentId 学生ID
+     * @param semester 学期（可选）
+     * @param year 学年（可选）
+     * @return 成绩列表
+     */
+    List<Grade> selectByStudentId(@Param("studentId") Long studentId,
+                                 @Param("semester") String semester,
+                                 @Param("year") Integer year);
+
+    /**
+     * 分页查询成绩信息（带学生和课程信息）
+     *
+     * @param page 分页参数
+     * @param classId 班级ID（可选）
+     * @param courseId 课程ID（可选）
+     * @param semester 学期（可选）
+     * @param year 学年（可选）
+     * @return 成绩分页数据
+     */
+    IPage<Grade> selectGradesWithDetails(Page<Grade> page,
+                                        @Param("classId") Long classId,
+                                        @Param("courseId") Long courseId,
+                                        @Param("semester") String semester,
+                                        @Param("year") Integer year);
+
+    /**
+     * 根据教师授课查询成绩列表
+     *
+     * @param teacherId 教师ID
+     * @param courseId 课程ID（可选）
+     * @param classId 班级ID（可选）
+     * @param semester 学期（可选）
+     * @param year 学年（可选）
+     * @return 成绩列表
+     */
+    List<Grade> selectByTeacherCourse(@Param("teacherId") Long teacherId,
+                                     @Param("courseId") Long courseId,
+                                     @Param("classId") Long classId,
+                                     @Param("semester") String semester,
+                                     @Param("year") Integer year);
+
+    /**
+     * 统计班级课程成绩分布
+     *
+     * @param classId 班级ID
+     * @param courseId 课程ID
+     * @param semester 学期
+     * @param year 学年
+     * @return 成绩统计信息
+     */
+    List<Grade> selectGradeStatistics(@Param("classId") Long classId,
+                                     @Param("courseId") Long courseId,
+                                     @Param("semester") String semester,
+                                     @Param("year") Integer year);
+
+} 
