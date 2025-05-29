@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.CourseMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.ljp.xjt.entity.Course">
+        <id column="id" property="id" />
+        <result column="course_name" property="courseName" />
+        <result column="course_code" property="courseCode" />
+        <result column="credits" property="credits" />
+        <result column="hours" property="hours" />
+        <result column="description" property="description" />
+        <result column="created_time" property="createdTime" />
+        <result column="updated_time" property="updatedTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, course_name, course_code, credits, hours, description, created_time, updated_time
+    </sql>
+
+    <!-- 如果有自定义SQL，可以在这里添加 -->
+
+</mapper> 
