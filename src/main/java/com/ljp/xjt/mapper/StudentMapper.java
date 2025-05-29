@@ -10,14 +10,15 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 /**
- * 学生Mapper接口
+ * 学生数据访问层接口
  * <p>
- * 提供学生相关的数据访问操作，包括基础CRUD和业务查询
+ * 继承自MyBatis Plus的BaseMapper，提供基础的CRUD操作。
+ * 包含对 `students` 表的数据库操作方法。
  * </p>
- * 
+ *
  * @author ljp
  * @version 1.0
- * @since 2025-05-26
+ * @since 2025-05-29
  */
 @Mapper
 public interface StudentMapper extends BaseMapper<Student> {
@@ -57,5 +58,9 @@ public interface StudentMapper extends BaseMapper<Student> {
     IPage<Student> selectStudentsWithClass(Page<Student> page, 
                                           @Param("classId") Long classId,
                                           @Param("studentName") String studentName);
+
+    // 如果需要自定义SQL查询，可以在这里添加方法声明
+    // 例如：根据学号查询学生信息
+    // Student findByStudentNumber(@Param("studentNumber") String studentNumber);
 
 } 

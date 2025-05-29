@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.StudentMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.ljp.xjt.entity.Student">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="student_number" property="studentNumber" />
+        <result column="student_name" property="studentName" />
+        <result column="gender" property="gender" />
+        <result column="birth_date" property="birthDate" />
+        <result column="class_id" property="classId" />
+        <result column="created_time" property="createdTime" />
+        <result column="updated_time" property="updatedTime" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, user_id, student_number, student_name, gender, birth_date, class_id, created_time, updated_time
+    </sql>
+
+    <!-- 
+    <select id="findByStudentNumber" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List" />
+        FROM students
+        WHERE student_number = #{studentNumber}
+    </select>
+    -->
+
+</mapper> 
