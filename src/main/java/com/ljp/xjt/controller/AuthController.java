@@ -3,6 +3,12 @@ package com.ljp.xjt.controller;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.dto.LoginRequest;
 import com.ljp.xjt.dto.LoginResponse;
+import com.ljp.xjt.dto.RefreshTokenRequest;
+import com.ljp.xjt.dto.RefreshTokenResponse;
+import com.ljp.xjt.dto.RegisterRequest;
+import com.ljp.xjt.entity.User;
+import com.ljp.xjt.service.AuthService;
+import com.ljp.xjt.service.RoleService;
 import com.ljp.xjt.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -21,12 +27,12 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 认证控制器
  * <p>
- * 提供用户登录认证相关的API接口。
+ * 提供用户登录认证、注册和令牌刷新相关的API接口。
  * </p>
  * 
  * @author ljp
- * @version 1.0
- * @since 2025-05-29
+ * @version 1.1
+ * @since 2025-05-30
  */
 @Slf4j
 @RestController
@@ -37,6 +43,8 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final AuthService authService;
+    private final RoleService roleService;
 
     /**
      * 用户登录
@@ -49,24 +57,86 @@ public class AuthController {
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
         log.info("Attempting login for user: {}", loginRequest.getUsername());
 
-        // 1. 使用AuthenticationManager进行用户认证
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
-                        loginRequest.getPassword()
-                )
+        // 调用认证服务进行登录
+        AuthService.LoginResult loginResult = authService.login(loginRequest.getUsername(), loginRequest.getPassword());
+        
+        if (!loginResult.isSuccess()) {
+            return ApiResponse.error(loginResult.getMessage());
+        }
+        
+        // 构建登录响应
+        LoginResponse response = new LoginResponse(
+            loginResult.getAccessToken(),
+            loginResult.getRefreshToken(),
+            loginResult.getUserId(),
+            loginResult.getUsername(),
+            loginResult.getRole()
         );
 
-        // 2. 如果认证成功，从Authentication对象中获取UserDetails
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-
-        // 3. 生成JWT
-        String jwt = jwtUtils.generateToken(userDetails.getUsername());
-
         log.info("User: {} logged in successfully.", loginRequest.getUsername());
-        return ApiResponse.success("登录成功", new LoginResponse(jwt));
+        return ApiResponse.success("登录成功", response);
     }
     
-    // TODO: 可以添加注册、刷新Token等接口
-
+    /**
+     * 刷新令牌
+     *
+     * @param refreshTokenRequest 刷新令牌请求体
+     * @return 包含新JWT的响应
+     */
+    @PostMapping("/refresh")
+    @Operation(summary = "刷新令牌", description = "使用刷新令牌获取新的访问令牌")
+    public ApiResponse<RefreshTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest refreshTokenRequest) {
+        log.info("Attempting to refresh token");
+        
+        // 调用认证服务刷新令牌
+        AuthService.LoginResult refreshResult = authService.refreshToken(refreshTokenRequest.getRefreshToken());
+        
+        if (!refreshResult.isSuccess()) {
+            return ApiResponse.error(refreshResult.getMessage());
+        }
+        
+        // 构建刷新令牌响应
+        RefreshTokenResponse response = new RefreshTokenResponse(
+            refreshResult.getAccessToken(),
+            refreshResult.getRefreshToken()
+        );
+        
+        log.info("Token refreshed successfully for user: {}", refreshResult.getUsername());
+        return ApiResponse.success("令牌刷新成功", response);
+    }
+    
+    /**
+     * 用户注册
+     *
+     * @param registerRequest 注册请求体
+     * @return 注册结果
+     */
+    @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "新用户注册，成功后返回用户ID")
+    public ApiResponse<Long> register(@Valid @RequestBody RegisterRequest registerRequest) {
+        log.info("Attempting to register user: {}", registerRequest.getUsername());
+        
+        // 1. 验证密码确认
+        if (!registerRequest.getPassword().equals(registerRequest.getConfirmPassword())) {
+            return ApiResponse.error("两次输入的密码不一致");
+        }
+        
+        // 2. 构建用户实体
+        User user = new User();
+        user.setUsername(registerRequest.getUsername());
+        user.setPassword(registerRequest.getPassword());
+        user.setEmail(registerRequest.getEmail());
+        user.setPhone(registerRequest.getPhone());
+        user.setStatus(1); // 默认启用
+        
+        // 3. 调用认证服务进行注册
+        AuthService.RegisterResult registerResult = authService.register(user, registerRequest.getRoleType());
+        
+        if (!registerResult.isSuccess()) {
+            return ApiResponse.error(registerResult.getMessage());
+        }
+        
+        log.info("User registered successfully: {}", registerRequest.getUsername());
+        return ApiResponse.success("注册成功", registerResult.getUserId());
+    }
 } 

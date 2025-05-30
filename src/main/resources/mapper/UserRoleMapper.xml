@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.UserRoleMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.ljp.xjt.entity.UserRole">
+        <id column="id" property="id" />
+        <result column="user_id" property="userId" />
+        <result column="role_id" property="roleId" />
+        <result column="created_time" property="createdTime" />
+        <result column="updated_time" property="updatedTime" />
+    </resultMap>
+
+    <!-- 为用户分配角色 -->
+    <insert id="assignRole">
+        INSERT INTO user_roles (user_id, role_id)
+        VALUES (#{userId}, #{roleId})
+    </insert>
+
+    <!-- 移除用户的角色 -->
+    <delete id="removeRole">
+        DELETE FROM user_roles
+        WHERE user_id = #{userId} AND role_id = #{roleId}
+    </delete>
+
+    <!-- 移除用户的所有角色 -->
+    <delete id="removeAllRoles">
+        DELETE FROM user_roles
+        WHERE user_id = #{userId}
+    </delete>
+
+</mapper> 

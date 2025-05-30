@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -17,16 +18,19 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * JWT认证过滤器
  * <p>
  * 拦截所有请求，检查是否存在有效的JWT。如果存在且有效，则设置Spring Security的认证上下文。
+ * 增强版可以从JWT中提取用户角色信息，并设置到认证上下文中。
  * </p>
  * 
  * @author ljp
- * @version 1.0
- * @since 2025-05-29
+ * @version 1.1
+ * @since 2025-05-30
  */
 @Slf4j
 @Component
@@ -48,7 +52,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && jwtUtils.validateToken(jwt)) {
                 String username = jwtUtils.getUsernameFromToken(jwt);
+                String role = jwtUtils.getRoleFromToken(jwt);
+                Long userId = jwtUtils.getUserIdFromToken(jwt);
 
+                log.debug("JWT token validated for user: {}, role: {}", username, role);
+                
                 // 从数据库加载用户（确保用户状态等仍然有效）
                 UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
                 
@@ -66,8 +74,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             log.error("Cannot set user authentication: {}", e.getMessage(), e);
-            // 可以考虑在这里清除SecurityContext，以防部分设置成功但后续出错
-            // SecurityContextHolder.clearContext();
+            // 清除SecurityContext，以防部分设置成功但后续出错
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
