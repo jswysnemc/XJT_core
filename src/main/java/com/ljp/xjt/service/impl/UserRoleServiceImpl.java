@@ -104,6 +104,34 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
     }
 
     /**
+     * 通过角色编码移除用户角色
+     *
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否成功
+     */
+    @Override
+    @Transactional
+    public boolean removeRoleByCode(Long userId, String roleCode) {
+        if (userId == null || !StringUtils.hasText(roleCode)) {
+            return false;
+        }
+        
+        // 1. 根据角色编码查询角色ID
+        LambdaQueryWrapper<Role> roleQuery = new LambdaQueryWrapper<>();
+        roleQuery.eq(Role::getRoleCode, roleCode);
+        
+        Role role = roleService.getOne(roleQuery);
+        if (role == null) {
+            log.warn("Role with code {} not found", roleCode);
+            return false;
+        }
+        
+        // 2. 移除角色
+        return removeRole(userId, role.getId());
+    }
+
+    /**
      * 移除用户的所有角色
      *
      * @param userId 用户ID
@@ -116,5 +144,36 @@ public class UserRoleServiceImpl extends ServiceImpl<UserRoleMapper, UserRole> i
         
         log.info("Removed all roles from user {}, affected rows: {}", userId, result);
         return result > 0;
+    }
+    
+    /**
+     * 检查用户是否拥有指定角色
+     *
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否拥有该角色
+     */
+    @Override
+    public boolean hasRole(Long userId, String roleCode) {
+        if (userId == null || !StringUtils.hasText(roleCode)) {
+            return false;
+        }
+        
+        // 1. 根据角色编码查询角色ID
+        LambdaQueryWrapper<Role> roleQuery = new LambdaQueryWrapper<>();
+        roleQuery.eq(Role::getRoleCode, roleCode);
+        
+        Role role = roleService.getOne(roleQuery);
+        if (role == null) {
+            log.warn("Role with code {} not found", roleCode);
+            return false;
+        }
+        
+        // 2. 查询用户是否有该角色
+        LambdaQueryWrapper<UserRole> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(UserRole::getUserId, userId)
+                   .eq(UserRole::getRoleId, role.getId());
+        
+        return count(queryWrapper) > 0;
     }
 } 

@@ -43,10 +43,28 @@ public interface UserRoleService extends IService<UserRole> {
     boolean removeRole(Long userId, Long roleId);
 
     /**
+     * 通过角色编码移除用户角色
+     *
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否成功
+     */
+    boolean removeRoleByCode(Long userId, String roleCode);
+
+    /**
      * 移除用户的所有角色
      *
      * @param userId 用户ID
      * @return 是否成功
      */
     boolean removeAllRoles(Long userId);
+
+    /**
+     * 检查用户是否拥有指定角色
+     *
+     * @param userId 用户ID
+     * @param roleCode 角色编码
+     * @return 是否拥有该角色
+     */
+    boolean hasRole(Long userId, String roleCode);
 } 
