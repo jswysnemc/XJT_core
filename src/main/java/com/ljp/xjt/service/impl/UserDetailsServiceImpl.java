@@ -52,7 +52,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         // 2. 构建权限集合 (这里暂时使用一个固定的"ROLE_USER"，后续应根据用户实际角色动态构建)
         // Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
-        // TODO: 将来需要从用户角色表中获取角色信息，并转换为GrantedAuthority
+
         Set<GrantedAuthority> authorities = new HashSet<>();
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
             authorities = user.getRoles().stream()
