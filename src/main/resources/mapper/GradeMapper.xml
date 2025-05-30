@@ -114,10 +114,10 @@
             MAX(g.score) as max_score,
             MIN(g.score) as min_score,
             SUM(CASE WHEN g.score >= 90 THEN 1 ELSE 0 END) as excellent_count,
-            SUM(CASE WHEN g.score >= 80 AND g.score < 90 THEN 1 ELSE 0 END) as good_count,
-            SUM(CASE WHEN g.score >= 70 AND g.score < 80 THEN 1 ELSE 0 END) as average_count,
-            SUM(CASE WHEN g.score >= 60 AND g.score < 70 THEN 1 ELSE 0 END) as pass_count,
-            SUM(CASE WHEN g.score < 60 THEN 1 ELSE 0 END) as fail_count
+            SUM(CASE WHEN g.score >= 80 AND g.score &lt; 90 THEN 1 ELSE 0 END) as good_count,
+            SUM(CASE WHEN g.score >= 70 AND g.score &lt; 80 THEN 1 ELSE 0 END) as average_count,
+            SUM(CASE WHEN g.score >= 60 AND g.score &lt; 70 THEN 1 ELSE 0 END) as pass_count,
+            SUM(CASE WHEN g.score &lt; 60 THEN 1 ELSE 0 END) as fail_count
         FROM grades g
         LEFT JOIN students s ON g.student_id = s.id
         <where>

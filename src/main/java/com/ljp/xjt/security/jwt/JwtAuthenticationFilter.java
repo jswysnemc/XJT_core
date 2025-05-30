@@ -56,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 Long userId = jwtUtils.getUserIdFromToken(jwt);
 
                 log.debug("JWT token validated for user: {}, role: {}", username, role);
-                
+
                 // 从数据库加载用户（确保用户状态等仍然有效）
                 UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
                 

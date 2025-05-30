@@ -59,4 +59,13 @@ public class Grade {
     @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedTime;  // 更新时间
 
+    // 扩展字段，不在表中
+    @TableField(exist = false)
+    private String studentName;         // 学生姓名，用于关联查询
+
+    @TableField(exist = false)
+    private String courseName;          // 课程名称，用于关联查询
+
+    @TableField(exist = false)
+    private String className;           // 班级名称，用于关联查询
 } 

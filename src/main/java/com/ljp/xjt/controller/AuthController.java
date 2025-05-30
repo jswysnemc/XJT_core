@@ -93,8 +93,8 @@ public class AuthController {
         
         if (!refreshResult.isSuccess()) {
             return ApiResponse.error(refreshResult.getMessage());
-        }
-        
+    }
+    
         // 构建刷新令牌响应
         RefreshTokenResponse response = new RefreshTokenResponse(
             refreshResult.getAccessToken(),
