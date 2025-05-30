@@ -1,8 +1,16 @@
 package com.ljp.xjt.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.Teacher;
+import com.ljp.xjt.entity.TeacherCourse;
+import com.ljp.xjt.entity.User;
+import com.ljp.xjt.service.CourseScheduleService;
+import com.ljp.xjt.service.StudentService;
+import com.ljp.xjt.service.TeacherCourseService;
 import com.ljp.xjt.service.TeacherService;
+import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +19,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 教师个人资料控制器
@@ -31,6 +45,10 @@ import org.springframework.web.bind.annotation.*;
 public class TeacherProfileController {
 
     private final TeacherService teacherService;
+    private final UserService userService;
+    private final TeacherCourseService teacherCourseService;
+    private final StudentService studentService;
+    private final CourseScheduleService courseScheduleService;
 
     /**
      * 获取当前登录教师的个人资料
@@ -46,13 +64,17 @@ public class TeacherProfileController {
         
         log.info("Get teacher profile for: {}", username);
         
-        // TODO: 根据用户名获取用户ID，然后获取教师信息
-        // 这里需要通过UserService先获取userId
-        // 暂时使用1作为示例
-        Long userId = 1L; // 这里应该是实际逻辑
+        // 根据用户名获取用户ID，然后获取教师信息
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            log.warn("User not found with username: {}", username);
+            return ApiResponse.error(404, "用户不存在");
+        }
         
+        Long userId = user.getId();
         Teacher teacher = teacherService.getTeacherByUserId(userId);
         if (teacher == null) {
+            log.warn("Teacher not found for user ID: {}", userId);
             return ApiResponse.notFound();
         }
         
@@ -74,12 +96,17 @@ public class TeacherProfileController {
         
         log.info("Update teacher profile for: {}", username);
         
-        // TODO: 根据用户名获取用户ID和教师ID
-        // 暂时使用1作为示例
-        Long userId = 1L; // 这里应该是实际逻辑
+        // 根据用户名获取用户ID和教师ID
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            log.warn("User not found with username: {}", username);
+            return ApiResponse.error(404, "用户不存在");
+        }
         
+        Long userId = user.getId();
         Teacher existingTeacher = teacherService.getTeacherByUserId(userId);
         if (existingTeacher == null) {
+            log.warn("Teacher not found for user ID: {}", userId);
             return ApiResponse.notFound();
         }
         
@@ -110,17 +137,70 @@ public class TeacherProfileController {
      */
     @GetMapping("/teaching-stats")
     @Operation(summary = "获取教学统计", description = "获取当前教师的教学统计信息")
-    public ApiResponse<Object> getTeachingStats() {
+    public ApiResponse<Map<String, Object>> getTeachingStats() {
         // 获取当前认证用户
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
         
         log.info("Get teaching stats for teacher: {}", username);
         
-        // TODO: 实现教学统计信息查询逻辑
+        // 实现教学统计信息查询逻辑
         // 包括：教授班级数、教授课程数、学生数量等
         
-        // 暂时返回空对象
-        return ApiResponse.success("查询成功", new Object());
+        // 获取教师信息
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            return ApiResponse.error(404, "用户不存在");
+        }
+        
+        Long userId = user.getId();
+        Teacher teacher = teacherService.getTeacherByUserId(userId);
+        if (teacher == null) {
+            return ApiResponse.notFound();
+        }
+        
+        Long teacherId = teacher.getId();
+        
+        // 查询该教师的课程安排
+        LambdaQueryWrapper<TeacherCourse> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TeacherCourse::getTeacherId, teacherId);
+        List<TeacherCourse> teacherCourses = teacherCourseService.list(queryWrapper);
+        
+        // 统计数据
+        // 1. 教授的班级数 (不重复的班级)
+        Set<Long> classIds = teacherCourses.stream()
+            .map(TeacherCourse::getClassId)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+        int classCount = classIds.size();
+        
+        // 2. 教授的课程数 (不重复的课程)
+        Set<Long> courseIds = teacherCourses.stream()
+            .map(TeacherCourse::getCourseId)
+            .filter(id -> id != null)
+            .collect(Collectors.toSet());
+        int courseCount = courseIds.size();
+        
+        // 3. 涉及的学生总数 (属于这些班级的所有学生)
+        int studentCount = 0;
+        if (!classIds.isEmpty()) {
+            LambdaQueryWrapper<Student> studentQuery = new LambdaQueryWrapper<>();
+            studentQuery.in(Student::getClassId, classIds);
+            studentCount = (int) studentService.count(studentQuery);
+        }
+        
+        // 4. 课程安排总数
+        int scheduleCount = teacherCourses.size();
+        
+        // 组装统计数据
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("teacherId", teacherId);
+        stats.put("teacherName", teacher.getTeacherName());
+        stats.put("classCount", classCount);
+        stats.put("courseCount", courseCount);
+        stats.put("studentCount", studentCount);
+        stats.put("scheduleCount", scheduleCount);
+        
+        return ApiResponse.success("查询成功", stats);
     }
 } 

@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Role;
 
 import java.util.Set;
+import java.util.List;
 
 /**
  * 角色服务接口
@@ -78,5 +79,55 @@ public interface RoleService extends IService<Role> {
      */
     boolean isRoleCodeExists(String roleCode);
     
-    // TODO: 后续可以添加为用户分配/移除角色的接口
+    /**
+     * 为用户分配角色
+     *
+     * @param userId 用户ID
+     * @param roleId 角色ID
+     * @return 操作结果，成功返回true，失败返回false
+     */
+    boolean assignRoleToUser(Long userId, Long roleId);
+    
+    /**
+     * 为用户分配多个角色
+     *
+     * @param userId 用户ID
+     * @param roleIds 角色ID列表
+     * @return 操作结果，成功返回true，失败返回false
+     */
+    boolean assignRolesToUser(Long userId, List<Long> roleIds);
+    
+    /**
+     * 为用户移除角色
+     *
+     * @param userId 用户ID
+     * @param roleId 角色ID
+     * @return 操作结果，成功返回true，失败返回false
+     */
+    boolean removeRoleFromUser(Long userId, Long roleId);
+    
+    /**
+     * 为用户移除多个角色
+     *
+     * @param userId 用户ID
+     * @param roleIds 角色ID列表
+     * @return 操作结果，成功返回true，失败返回false
+     */
+    boolean removeRolesFromUser(Long userId, List<Long> roleIds);
+    
+    /**
+     * 移除用户的所有角色
+     *
+     * @param userId 用户ID
+     * @return 操作结果，成功返回true，失败返回false
+     */
+    boolean removeAllRolesFromUser(Long userId);
+    
+    /**
+     * 根据角色编码获取角色
+     *
+     * @param roleCode 角色编码
+     * @return 角色信息，如果不存在则返回null
+     */
+    Role getRoleByCode(String roleCode);
 } 

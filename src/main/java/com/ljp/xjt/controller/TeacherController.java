@@ -1,9 +1,14 @@
 package com.ljp.xjt.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.entity.Classes;
+import com.ljp.xjt.entity.CourseSchedule;
 import com.ljp.xjt.entity.Teacher;
+import com.ljp.xjt.service.ClassesService;
+import com.ljp.xjt.service.CourseScheduleService;
 import com.ljp.xjt.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -39,6 +44,8 @@ import java.util.List;
 public class TeacherController {
 
     private final TeacherService teacherService;
+    private final ClassesService classesService;
+    private final CourseScheduleService courseScheduleService;
 
     /**
      * 分页查询教师列表
@@ -169,14 +176,30 @@ public class TeacherController {
             return ApiResponse.notFound();
         }
         
-        // TODO: 检查是否有关联数据，如班级班主任、教学任务等
+        // 检查是否有关联数据，如班级班主任、教学任务等
+        // 1. 检查是否是班级班主任
+        LambdaQueryWrapper<Classes> classQuery = new LambdaQueryWrapper<>();
+        classQuery.eq(Classes::getAdvisorTeacherId, id);
+        long classCount = classesService.count(classQuery);
+        
+        if (classCount > 0) {
+            log.warn("Cannot delete teacher with ID {} because they are the advisor for {} classes", id, classCount);
+            return ApiResponse.error(400, "该教师是" + classCount + "个班级的班主任，不能直接删除。请先更换这些班级的班主任");
+        }
+        
+        // 2. 检查是否有教学任务安排
+        boolean hasSchedules = courseScheduleService.hasSchedulesByTeacherId(id);
+        if (hasSchedules) {
+            log.warn("Cannot delete teacher with ID {} because they have teaching schedules", id);
+            return ApiResponse.error(400, "该教师有关联的课程安排记录，不能直接删除。请先删除相关教学任务");
+        }
         
         boolean result = teacherService.removeById(id);
         if (!result) {
             return ApiResponse.error("教师删除失败");
         }
         
-        return ApiResponse.success();
+        return ApiResponse.success("教师删除成功", null);
     }
 
     /**

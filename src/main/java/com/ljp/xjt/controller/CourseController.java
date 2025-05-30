@@ -4,7 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.entity.Course;
+import com.ljp.xjt.entity.Grade;
+import com.ljp.xjt.entity.CourseSchedule;
 import com.ljp.xjt.service.CourseService;
+import com.ljp.xjt.service.GradeService;
+import com.ljp.xjt.service.CourseScheduleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -33,11 +39,19 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class CourseController {
 
+    private static final Logger log = LoggerFactory.getLogger(CourseController.class);
+
     private final CourseService courseService;
+    private final GradeService gradeService;
+    private final CourseScheduleService courseScheduleService;
 
     @Autowired
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, 
+                          GradeService gradeService,
+                          CourseScheduleService courseScheduleService) {
         this.courseService = courseService;
+        this.gradeService = gradeService;
+        this.courseScheduleService = courseScheduleService;
     }
 
     /**
@@ -59,6 +73,7 @@ public class CourseController {
         // 2. 保存课程信息
         boolean success = courseService.save(course);
         if (success) {
+            log.info("Course created successfully: {}", course.getCourseName());
             return ApiResponse.created(course);
         }
         return ApiResponse.error(500, "课程创建失败");
@@ -107,6 +122,7 @@ public class CourseController {
         course.setId(id);
         boolean success = courseService.updateById(course);
         if (success) {
+            log.info("Course updated successfully: {}", course.getCourseName());
             return ApiResponse.success("课程更新成功", courseService.getById(id));
         }
         return ApiResponse.error(500, "课程更新失败");
@@ -121,13 +137,33 @@ public class CourseController {
     @DeleteMapping("/{id}")
     @Operation(summary = "删除课程", description = "根据ID删除指定课程")
     public ApiResponse<Void> deleteCourse(@Parameter(description = "课程ID") @PathVariable Long id) {
-        // TODO: 删除课程前应检查是否有班级课程安排、成绩等关联数据
         Course existingCourse = courseService.getById(id);
         if (existingCourse == null) {
             return ApiResponse.notFound();
         }
+
+        // 删除课程前检查是否有班级课程安排、成绩等关联数据
+        // 1. 检查是否有课程安排关联
+        boolean hasSchedules = courseScheduleService.hasSchedulesByCourseId(id);
+        if (hasSchedules) {
+            log.warn("Cannot delete course with ID {} because it has associated schedules", id);
+            return ApiResponse.error(400, "该课程已有排课记录，不能直接删除。请先删除相关课程安排");
+        }
+        
+        // 2. 检查是否有成绩记录关联
+        LambdaQueryWrapper<Grade> gradeQuery = new LambdaQueryWrapper<>();
+        gradeQuery.eq(Grade::getCourseId, id);
+        long gradeCount = gradeService.count(gradeQuery);
+        
+        if (gradeCount > 0) {
+            log.warn("Cannot delete course with ID {} because it has {} grade records", id, gradeCount);
+            return ApiResponse.error(400, "该课程有关联的成绩记录，不能直接删除。请先删除相关成绩记录");
+        }
+        
+        // 执行删除操作
         boolean success = courseService.removeById(id);
         if (success) {
+            log.info("Course deleted successfully: ID={}, Name={}", id, existingCourse.getCourseName());
             return ApiResponse.success("课程删除成功", null);
         }
         return ApiResponse.error(500, "课程删除失败");
