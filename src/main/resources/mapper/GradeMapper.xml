@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.GradeMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.ljp.xjt.entity.Grade">
+        <id column="id" property="id" />
+        <result column="student_id" property="studentId" />
+        <result column="course_id" property="courseId" />
+        <result column="score" property="score" />
+        <result column="grade_type" property="gradeType" />
+        <result column="semester" property="semester" />
+        <result column="year" property="year" />
+        <result column="is_abnormal" property="isAbnormal" />
+        <result column="remarks" property="remarks" />
+        <result column="created_by" property="createdBy" />
+        <result column="created_time" property="createdTime" />
+        <result column="updated_time" property="updatedTime" />
+    </resultMap>
+    
+    <!-- 扩展查询映射结果，包含学生和课程信息 -->
+    <resultMap id="GradeWithDetailsMap" type="com.ljp.xjt.entity.Grade" extends="BaseResultMap">
+        <association property="studentName" javaType="java.lang.String" column="student_name" />
+        <association property="courseName" javaType="java.lang.String" column="course_name" />
+        <association property="className" javaType="java.lang.String" column="class_name" />
+    </resultMap>
+
+    <!-- 根据学生ID和课程ID查询成绩 -->
+    <select id="selectByStudentAndCourse" resultMap="BaseResultMap">
+        SELECT * FROM grades 
+        WHERE student_id = #{studentId}
+        <if test="courseId != null">
+            AND course_id = #{courseId}
+        </if>
+        <if test="semester != null and semester != ''">
+            AND semester = #{semester}
+        </if>
+        <if test="year != null">
+            AND year = #{year}
+        </if>
+        ORDER BY created_time DESC
+    </select>
+
+    <!-- 根据学生ID查询所有成绩 -->
+    <select id="selectByStudentId" resultMap="BaseResultMap">
+        SELECT g.*, c.course_name 
+        FROM grades g
+        LEFT JOIN courses c ON g.course_id = c.id
+        WHERE g.student_id = #{studentId}
+        <if test="semester != null and semester != ''">
+            AND g.semester = #{semester}
+        </if>
+        <if test="year != null">
+            AND g.year = #{year}
+        </if>
+        ORDER BY g.created_time DESC
+    </select>
+
+    <!-- 分页查询成绩信息（带学生和课程信息） -->
+    <select id="selectGradesWithDetails" resultMap="GradeWithDetailsMap">
+        SELECT g.*, s.student_name, c.course_name, cl.class_name
+        FROM grades g
+        LEFT JOIN students s ON g.student_id = s.id
+        LEFT JOIN courses c ON g.course_id = c.id
+        LEFT JOIN classes cl ON s.class_id = cl.id
+        <where>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+            <if test="courseId != null">
+                AND g.course_id = #{courseId}
+            </if>
+            <if test="semester != null and semester != ''">
+                AND g.semester = #{semester}
+            </if>
+            <if test="year != null">
+                AND g.year = #{year}
+            </if>
+        </where>
+        ORDER BY g.updated_time DESC
+    </select>
+
+    <!-- 根据教师授课查询成绩列表 -->
+    <select id="selectByTeacherCourse" resultMap="GradeWithDetailsMap">
+        SELECT g.*, s.student_name, c.course_name, cl.class_name
+        FROM grades g
+        LEFT JOIN students s ON g.student_id = s.id
+        LEFT JOIN courses c ON g.course_id = c.id
+        LEFT JOIN classes cl ON s.class_id = cl.id
+        LEFT JOIN teacher_course tc ON (g.course_id = tc.course_id AND cl.id = tc.class_id)
+        <where>
+            tc.teacher_id = #{teacherId}
+            <if test="courseId != null">
+                AND g.course_id = #{courseId}
+            </if>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+            <if test="semester != null and semester != ''">
+                AND g.semester = #{semester}
+            </if>
+            <if test="year != null">
+                AND g.year = #{year}
+            </if>
+        </where>
+        ORDER BY s.student_number
+    </select>
+
+    <!-- 统计班级课程成绩分布 -->
+    <select id="selectGradeStatistics" resultType="java.util.Map">
+        SELECT 
+            COUNT(*) as total_count,
+            AVG(g.score) as avg_score,
+            MAX(g.score) as max_score,
+            MIN(g.score) as min_score,
+            SUM(CASE WHEN g.score >= 90 THEN 1 ELSE 0 END) as excellent_count,
+            SUM(CASE WHEN g.score >= 80 AND g.score < 90 THEN 1 ELSE 0 END) as good_count,
+            SUM(CASE WHEN g.score >= 70 AND g.score < 80 THEN 1 ELSE 0 END) as average_count,
+            SUM(CASE WHEN g.score >= 60 AND g.score < 70 THEN 1 ELSE 0 END) as pass_count,
+            SUM(CASE WHEN g.score < 60 THEN 1 ELSE 0 END) as fail_count
+        FROM grades g
+        LEFT JOIN students s ON g.student_id = s.id
+        <where>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+            <if test="courseId != null">
+                AND g.course_id = #{courseId}
+            </if>
+            <if test="semester != null and semester != ''">
+                AND g.semester = #{semester}
+            </if>
+            <if test="year != null">
+                AND g.year = #{year}
+            </if>
+        </where>
+    </select>
+
+</mapper>

@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 成绩Mapper接口
@@ -17,7 +18,7 @@ import java.util.List;
  * 
  * @author ljp
  * @version 1.0
- * @since 2025-05-26
+ * @since 2025-05-30
  */
 @Mapper
 public interface GradeMapper extends BaseMapper<Grade> {
@@ -89,7 +90,7 @@ public interface GradeMapper extends BaseMapper<Grade> {
      * @param year 学年
      * @return 成绩统计信息
      */
-    List<Grade> selectGradeStatistics(@Param("classId") Long classId,
+    List<Map<String, Object>> selectGradeStatistics(@Param("classId") Long classId,
                                      @Param("courseId") Long courseId,
                                      @Param("semester") String semester,
                                      @Param("year") Integer year);
