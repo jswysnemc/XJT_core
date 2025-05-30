@@ -5,8 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.entity.Grade;
 import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.UserService;
+import com.ljp.xjt.service.UserRoleService;
+import com.ljp.xjt.service.GradeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,6 +20,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -35,13 +40,20 @@ import java.util.List;
 @Tag(name = "学生管理", description = "提供学生信息的查询、管理接口")
 public class StudentController {
 
+    private static final Logger log = LoggerFactory.getLogger(StudentController.class);
+    
     private final StudentService studentService;
-    private final UserService userService; // 用于获取当前登录用户信息
+    private final UserService userService;
+    private final UserRoleService userRoleService;
+    private final GradeService gradeService;
 
     @Autowired
-    public StudentController(StudentService studentService, UserService userService) {
+    public StudentController(StudentService studentService, UserService userService, 
+                           UserRoleService userRoleService, GradeService gradeService) {
         this.studentService = studentService;
         this.userService = userService;
+        this.userRoleService = userRoleService;
+        this.gradeService = gradeService;
     }
 
     /**
@@ -62,11 +74,31 @@ public class StudentController {
         if (student.getUserId() == null || userService.getById(student.getUserId()) == null) {
              return ApiResponse.error(400, "关联的用户ID无效或用户不存在");
         }
-        // TODO: 校验用户角色是否为学生，以及用户是否已被其他学生记录关联
+        
+        // 校验用户角色是否为学生，以及用户是否已被其他学生记录关联
+        Long userId = student.getUserId();
+        
+        // 检查用户是否已经有STUDENT角色
+        boolean hasStudentRole = userRoleService.hasRole(userId, "STUDENT");
+        if (!hasStudentRole) {
+            log.info("User {} does not have student role, assigning it", userId);
+            boolean assigned = userRoleService.assignRoleByCode(userId, "STUDENT");
+            if (!assigned) {
+                return ApiResponse.error(500, "分配学生角色失败");
+            }
+        }
+        
+        // 检查用户是否已关联其他学生记录
+        Student existingStudent = studentService.findByUserId(userId);
+        if (existingStudent != null) {
+            log.warn("User {} is already associated with student record {}", userId, existingStudent.getId());
+            return ApiResponse.error(400, "该用户已关联到其他学生记录");
+        }
 
         // 3. 保存学生信息
         boolean success = studentService.save(student);
         if (success) {
+            log.info("Student record created successfully for user {}", userId);
             return ApiResponse.created(student);
         }
         return ApiResponse.error(500, "学生信息创建失败");
@@ -160,12 +192,33 @@ public class StudentController {
         if (existingStudent == null) {
             return ApiResponse.notFound();
         }
-        // TODO: 删除学生前应检查是否有成绩等关联数据。删除学生记录通常也意味着要处理关联的用户账号。
-        boolean success = studentService.removeById(id);
-        if (success) {
-            return ApiResponse.success("学生信息删除成功", null);
+        
+        // 删除学生前应检查是否有成绩等关联数据
+        Long userId = existingStudent.getUserId();
+        Long studentId = existingStudent.getId();
+        
+        // 检查是否有关联的成绩记录
+        LambdaQueryWrapper<Grade> gradeQuery = new LambdaQueryWrapper<>();
+        gradeQuery.eq(Grade::getStudentId, studentId);
+        long gradeCount = gradeService.count(gradeQuery);
+        
+        if (gradeCount > 0) {
+            log.warn("Cannot delete student with ID {} because there are {} grade records associated", studentId, gradeCount);
+            return ApiResponse.error(400, "该学生有关联的成绩记录，不能直接删除。请先删除相关成绩记录或联系系统管理员");
         }
-        return ApiResponse.error(500, "学生信息删除失败");
+        
+        // 删除学生记录
+        boolean success = studentService.removeById(id);
+        if (!success) {
+            return ApiResponse.error(500, "学生信息删除失败");
+        }
+        
+        // 不直接删除用户账号，只移除学生角色
+        // 实际业务中可能需要根据用户表中的其他字段进一步判断是否应该删除用户账号
+        log.info("Student record deleted successfully, removing student role from user {}", userId);
+        userRoleService.removeRoleByCode(userId, "STUDENT");
+        
+        return ApiResponse.success("学生信息删除成功", null);
     }
 
     /**
