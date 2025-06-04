@@ -6,11 +6,13 @@ import com.ljp.xjt.dto.LoginResponse;
 import com.ljp.xjt.dto.RefreshTokenRequest;
 import com.ljp.xjt.dto.RefreshTokenResponse;
 import com.ljp.xjt.dto.RegisterRequest;
+import com.ljp.xjt.dto.ValidateTokenResponse;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.service.AuthService;
 import com.ljp.xjt.service.RoleService;
 import com.ljp.xjt.utils.JwtUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +21,9 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 /**
  * 认证控制器
@@ -103,6 +104,55 @@ public class AuthController {
         
         log.info("Token refreshed successfully for user: {}", refreshResult.getUsername());
         return ApiResponse.success("令牌刷新成功", response);
+    }
+    
+    /**
+     * 验证令牌有效性
+     *
+     * @param token JWT令牌
+     * @return 包含令牌验证结果的响应
+     */
+    @GetMapping("/validate-token")
+    @Operation(summary = "验证令牌有效性", description = "验证JWT令牌是否有效，并返回详细信息")
+    public ApiResponse<ValidateTokenResponse> validateToken(
+            @Parameter(description = "JWT令牌 (Bearer Token或直接传入token)") 
+            @RequestParam String token) {
+        log.info("Validating token");
+        
+        // 如果token以"Bearer "开头，则去除前缀
+        if (token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        }
+        
+        // 验证令牌是否有效
+        boolean isValid = jwtUtils.validateToken(token);
+        
+        if (!isValid) {
+            log.warn("Invalid token provided");
+            ValidateTokenResponse response = new ValidateTokenResponse(
+                false, null, null, null, null, null, 0L);
+            return ApiResponse.success("令牌无效", response);
+        }
+        
+        try {
+            // 获取令牌中的信息
+            String username = jwtUtils.getUsernameFromToken(token);
+            Long userId = jwtUtils.getUserIdFromToken(token);
+            String role = jwtUtils.getRoleFromToken(token);
+            LocalDateTime expiresAt = jwtUtils.dateToLocalDateTime(jwtUtils.getExpirationDateFromToken(token));
+            LocalDateTime issuedAt = jwtUtils.dateToLocalDateTime(jwtUtils.getIssuedAtFromToken(token));
+            Long remainingSeconds = jwtUtils.getRemainingTimeFromToken(token);
+            
+            // 构建响应
+            ValidateTokenResponse response = new ValidateTokenResponse(
+                true, userId, username, role, issuedAt, expiresAt, remainingSeconds);
+            
+            log.info("Token validated successfully for user: {}", username);
+            return ApiResponse.success("令牌有效", response);
+        } catch (Exception e) {
+            log.error("Error validating token: {}", e.getMessage());
+            return ApiResponse.error("令牌验证过程中发生错误");
+        }
     }
     
     /**

@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,6 +123,46 @@ public class JwtUtils {
      */
     public Date getExpirationDateFromToken(String token) {
         return getClaimFromToken(token, Claims::getExpiration);
+    }
+
+    /**
+     * 从令牌中获取签发时间
+     *
+     * @param token JWT令牌
+     * @return 签发时间
+     */
+    public Date getIssuedAtFromToken(String token) {
+        return getClaimFromToken(token, Claims::getIssuedAt);
+    }
+
+    /**
+     * 获取令牌的剩余有效时间（秒）
+     *
+     * @param token JWT令牌
+     * @return 剩余有效时间（秒），如果令牌已过期则返回0
+     */
+    public long getRemainingTimeFromToken(String token) {
+        try {
+            Date expiration = getExpirationDateFromToken(token);
+            Date now = new Date();
+            long diff = expiration.getTime() - now.getTime();
+            return diff > 0 ? diff / 1000 : 0;
+        } catch (Exception e) {
+            log.warn("Failed to get remaining time from token: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * 将Date转换为LocalDateTime
+     *
+     * @param date 日期对象
+     * @return LocalDateTime对象
+     */
+    public LocalDateTime dateToLocalDateTime(Date date) {
+        return date.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
     /**
