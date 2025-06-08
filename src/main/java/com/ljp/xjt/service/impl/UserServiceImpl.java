@@ -177,4 +177,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return user;
     }
 
+    @Override
+    public User findById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return getById(id);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(User user, String oldPassword, String newPassword) {
+        // 1. 验证旧密码是否正确
+        if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BusinessException("旧密码不正确");
+        }
+
+        // 2. 验证新密码是否与旧密码相同
+        if (oldPassword.equals(newPassword)) {
+            throw new BusinessException("新密码不能与旧密码相同");
+        }
+
+        // 3. 更新密码
+        user.setPassword(passwordEncoder.encode(newPassword));
+        updateById(user);
+    }
+
 } 

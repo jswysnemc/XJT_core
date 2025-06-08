@@ -104,7 +104,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/doc.html", "/webjars/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/auth/**", "/test/**").permitAll()
+                .requestMatchers("/v1/auth/**", "/v1/profile/avatar/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

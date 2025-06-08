@@ -116,4 +116,19 @@ public interface UserService extends IService<User> {
      */
     User findByUsername(String username);
 
+    /**
+     * 根据用户ID查询用户
+     * @param id
+     * @return
+     */
+    User findById(Long id);
+
+    /**
+     * 修改用户密码
+     * @param user
+     * @param oldPassword
+     * @param newPassword
+     */
+    void changePassword(User user, String oldPassword, String newPassword);
+
 } 

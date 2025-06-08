@@ -61,6 +61,16 @@ public class ApiResponse<T> {
     }
 
     /**
+     * 创建成功响应（自定义消息）
+     *
+     * @param message 自定义消息
+     * @return 成功响应对象
+     */
+    public static <T> ApiResponse<T> success(String message) {
+        return new ApiResponse<>(200, message, null, LocalDateTime.now());
+    }
+
+    /**
      * 创建成功响应（自定义消息和数据）
      *
      * @param message 自定义消息
