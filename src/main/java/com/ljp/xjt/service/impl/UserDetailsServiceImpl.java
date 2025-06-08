@@ -56,7 +56,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         Set<GrantedAuthority> authorities = new HashSet<>();
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
             authorities = user.getRoles().stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRoleName().toUpperCase()))
+                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRoleCode().toUpperCase()))
                     .collect(Collectors.toSet());
         } else {
             // 如果用户没有分配任何角色，可以赋予一个默认角色，或者根据业务需求处理
