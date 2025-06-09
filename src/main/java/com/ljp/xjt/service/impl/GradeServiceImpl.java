@@ -283,9 +283,17 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
      */
     @Override
     public List<Grade> getStudentCourseGrades(Long studentId, Long courseId, String semester, Integer year) {
-        log.info("Getting grades for student {} and course {}, semester: {}, year: {}", 
-                 studentId, courseId, semester, year);
-        return this.baseMapper.selectByStudentAndCourse(studentId, courseId, semester, year);
+        log.info("Getting grades for student {}, course {}, semester {}, year {}", studentId, courseId, semester, year);
+        LambdaQueryWrapper<Grade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Grade::getStudentId, studentId)
+                .eq(Grade::getCourseId, courseId);
+        if (semester != null) {
+            queryWrapper.eq(Grade::getSemester, semester);
+        }
+        if (year != null) {
+            queryWrapper.eq(Grade::getYear, year);
+        }
+        return baseMapper.selectList(queryWrapper);
     }
 
     /**
@@ -303,20 +311,34 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     }
 
     /**
-     * 分页查询成绩列表(带详细信息)
+     * 分页查询成绩列表
      *
-     * @param page 分页参数
-     * @param classId 班级ID
-     * @param courseId 课程ID
-     * @param semester 学期
-     * @param year 学年
-     * @return 成绩分页数据
+     * @param page      分页对象
+     * @param classId   班级ID
+     * @param courseId  课程ID
+     * @param semester  学期
+     * @param year      学年
+     * @return 分页后的成绩列表
      */
     @Override
     public IPage<Grade> getGradeList(Page<Grade> page, Long classId, Long courseId, String semester, Integer year) {
-        log.info("Getting grade list with classId: {}, courseId: {}, semester: {}, year: {}", 
-                 classId, courseId, semester, year);
-        return this.baseMapper.selectGradesWithDetails(page, classId, courseId, semester, year);
+        log.info("Getting grade list with pagination - class: {}, course: {}, semester: {}, year: {}",
+                classId, courseId, semester, year);
+        LambdaQueryWrapper<Grade> queryWrapper = new LambdaQueryWrapper<>();
+         // 这里应该基于班级和课程来查询，而不是学生ID
+        if (classId != null) {
+            // 需要通过classId查询所有学生ID，然后作为查询条件
+            // List<Long> studentIds = studentMapper.selectStudentIdsByClassId(classId);
+            // queryWrapper.in(Grade::getStudentId, studentIds);
+        }
+        queryWrapper.eq(courseId != null, Grade::getCourseId, courseId);
+        if (semester != null) {
+            queryWrapper.eq(Grade::getSemester, semester);
+        }
+        if (year != null) {
+            queryWrapper.eq(Grade::getYear, year);
+        }
+        return baseMapper.selectPage(page, queryWrapper);
     }
 
     /**

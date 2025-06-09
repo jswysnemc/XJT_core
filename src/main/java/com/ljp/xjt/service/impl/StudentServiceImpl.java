@@ -2,11 +2,17 @@ package com.ljp.xjt.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.mapper.StudentMapper;
+import com.ljp.xjt.security.SecurityUser;
 import com.ljp.xjt.service.StudentService;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * 学生服务实现类
@@ -88,5 +94,36 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         }
         Student student = this.getStudentById(studentId);
         return classId.equals(student.getClassId());
+    }
+
+    /**
+     * 查询当前登录学生的所有成绩
+     * <p>
+     * 1. 从Spring Security上下文中获取当前登录用户的ID。
+     * 2. 根据用户ID查找对应的学生信息。
+     * 3. 如果学生存在，则调用mapper查询其所有成绩。
+     * 4. 如果学生不存在或未登录，返回空列表。
+     * </p>
+     *
+     * @return List<StudentGradeDTO> 包含成绩详情的列表
+     */
+    @Override
+    public List<StudentGradeDTO> findMyGrades() {
+        // 1. 获取当前登录用户的认证信息
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof SecurityUser securityUser) {
+            // 2. 根据用户ID查找学生信息
+            Long userId = securityUser.getUser().getId();
+            Student student = this.findByUserId(userId);
+
+            if (student != null) {
+                // 3. 调用mapper查询成绩
+                return baseMapper.findGradesByStudentId(student.getId());
+            }
+        }
+
+        // 4. 如果用户未登录或不是学生，返回空列表
+        return Collections.emptyList();
     }
 } 

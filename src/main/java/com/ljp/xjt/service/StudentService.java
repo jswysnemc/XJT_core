@@ -2,6 +2,9 @@ package com.ljp.xjt.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Student;
+import com.ljp.xjt.dto.StudentGradeDTO;
+
+import java.util.List;
 
 /**
  * 学生服务接口
@@ -49,6 +52,13 @@ public interface StudentService extends IService<Student> {
      * @return 如果学生属于该班级，则返回true，否则返回false
      */
     boolean isStudentInClass(Long studentId, Long classId);
+
+    /**
+     * 查询当前登录学生的所有成绩
+     *
+     * @return List<StudentGradeDTO> 包含成绩详情的列表
+     */
+    List<StudentGradeDTO> findMyGrades();
 
     // 未来可以添加更多业务方法，例如：
     // Page<StudentDTO> findStudentsWithDetails(Page<Student> page, StudentQueryParam queryParam);

@@ -14,47 +14,33 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 /**
- * 学生管理控制器
+ * 学生管理控制器 (管理员)
  * <p>
- * 提供学生信息的RESTful API接口。管理员可进行增删改查操作，学生可查询自身信息。
+ * 提供学生信息的RESTful API接口，仅限管理员进行增删改查操作。
  * </p>
  *
  * @author ljp
  * @version 1.0
- * @since 2025-05-29
+ * @since 2025-05-30
  */
 @RestController
-@RequestMapping("/students")
-@Tag(name = "学生管理", description = "提供学生信息的查询、管理接口")
-public class StudentController {
+@RequestMapping("/admin/students")
+@Tag(name = "管理端 - 学生管理", description = "提供学生信息的查询、管理接口")
+@RequiredArgsConstructor
+@Slf4j
+public class StudentAdminController {
 
-    private static final Logger log = LoggerFactory.getLogger(StudentController.class);
-    
     private final StudentService studentService;
     private final UserService userService;
     private final UserRoleService userRoleService;
     private final GradeService gradeService;
-
-    @Autowired
-    public StudentController(StudentService studentService, UserService userService, 
-                           UserRoleService userRoleService, GradeService gradeService) {
-        this.studentService = studentService;
-        this.userService = userService;
-        this.userRoleService = userRoleService;
-        this.gradeService = gradeService;
-    }
 
     /**
      * [管理员] 创建新学生信息
@@ -64,30 +50,27 @@ public class StudentController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "创建新学生(管理员)", description = "创建一个新的学生记录，关联到用户表。需要管理员权限。")
+    @Operation(summary = "创建新学生", description = "创建一个新的学生记录，关联到用户表。需要管理员权限。")
     public ApiResponse<Student> createStudent(@Valid @RequestBody Student student) {
         // 1. 校验学号是否已存在
         if (studentService.checkStudentNumberExists(student.getStudentNumber(), null)) {
             return ApiResponse.error(400, "学号已存在");
         }
-        // 2. 校验关联的userId是否存在且为学生角色 (这里简化，实际可能需要更复杂校验)
+        // 2. 校验关联的userId是否存在
         if (student.getUserId() == null || userService.getById(student.getUserId()) == null) {
-             return ApiResponse.error(400, "关联的用户ID无效或用户不存在");
+            return ApiResponse.error(400, "关联的用户ID无效或用户不存在");
         }
-        
-        // 校验用户角色是否为学生，以及用户是否已被其他学生记录关联
+
         Long userId = student.getUserId();
-        
+
         // 检查用户是否已经有STUDENT角色
-        boolean hasStudentRole = userRoleService.hasRole(userId, "STUDENT");
-        if (!hasStudentRole) {
+        if (!userRoleService.hasRole(userId, "STUDENT")) {
             log.info("User {} does not have student role, assigning it", userId);
-            boolean assigned = userRoleService.assignRoleByCode(userId, "STUDENT");
-            if (!assigned) {
+            if (!userRoleService.assignRoleByCode(userId, "STUDENT")) {
                 return ApiResponse.error(500, "分配学生角色失败");
             }
         }
-        
+
         // 检查用户是否已关联其他学生记录
         Student existingStudent = studentService.findByUserId(userId);
         if (existingStudent != null) {
@@ -96,8 +79,7 @@ public class StudentController {
         }
 
         // 3. 保存学生信息
-        boolean success = studentService.save(student);
-        if (success) {
+        if (studentService.save(student)) {
             log.info("Student record created successfully for user {}", userId);
             return ApiResponse.created(student);
         }
@@ -112,37 +94,10 @@ public class StudentController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "获取学生详情(管理员)", description = "根据学生记录ID查询详细信息。需要管理员权限。")
+    @Operation(summary = "获取学生详情", description = "根据学生记录ID查询详细信息。需要管理员权限。")
     public ApiResponse<Student> getStudentByIdAsAdmin(@Parameter(description = "学生记录ID") @PathVariable Long id) {
-        Student student = studentService.getById(id);
-        if (student != null) {
-            return ApiResponse.success(student);
-        }
-        return ApiResponse.notFound();
-    }
-    
-    /**
-     * [学生] 获取当前登录学生的个人信息
-     *
-     * @return ApiResponse<Student> 当前登录学生的信息
-     */
-    @GetMapping("/me")
-    @PreAuthorize("hasRole('STUDENT')")
-    @Operation(summary = "获取当前学生信息(学生)", description = "查询当前登录学生的详细信息。需要学生权限。")
-    public ApiResponse<Student> getCurrentStudentInfo() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUserName = authentication.getName();
-        User currentUser = userService.findByUsername(currentUserName);
-
-        if (currentUser == null) {
-            return ApiResponse.error(404, "无法获取当前用户信息");
-        }
-
-        Student student = studentService.findByUserId(currentUser.getId());
-        if (student != null) {
-            return ApiResponse.success(student);
-        }
-        return ApiResponse.error(404, "未找到当前用户的学生信息");
+        Student student = studentService.getStudentById(id);
+        return ApiResponse.success(student);
     }
 
     /**
@@ -154,25 +109,22 @@ public class StudentController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "更新学生信息(管理员)", description = "根据学生记录ID更新信息。需要管理员权限。")
+    @Operation(summary = "更新学生信息", description = "根据学生记录ID更新信息。需要管理员权限。")
     public ApiResponse<Student> updateStudent(@Parameter(description = "学生记录ID") @PathVariable Long id,
                                             @Valid @RequestBody Student student) {
-        // 1. 检查学生记录是否存在
-        Student existingStudent = studentService.getById(id);
-        if (existingStudent == null) {
-            return ApiResponse.notFound();
-        }
+        // 1. 检查学生记录是否存在 (getStudentById会抛异常)
+        Student existingStudent = studentService.getStudentById(id);
+        
         // 2. 校验更新后的学号是否与其它学生冲突
         if (studentService.checkStudentNumberExists(student.getStudentNumber(), id)) {
             return ApiResponse.error(400, "学号已存在");
         }
+        
         // 3. 设置ID并更新
         student.setId(id);
-        // userId 通常在创建学生记录时确定，一般不允许随意更改，此处保持不变或根据业务需求处理
-        student.setUserId(existingStudent.getUserId()); 
+        student.setUserId(existingStudent.getUserId()); // userId不允许更改
 
-        boolean success = studentService.updateById(student);
-        if (success) {
+        if (studentService.updateById(student)) {
             return ApiResponse.success("学生信息更新成功", studentService.getById(id));
         }
         return ApiResponse.error(500, "学生信息更新失败");
@@ -186,37 +138,24 @@ public class StudentController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "删除学生信息(管理员)", description = "根据学生记录ID删除学生信息。需要管理员权限。")
+    @Operation(summary = "删除学生信息", description = "根据学生记录ID删除学生信息。需要管理员权限。")
     public ApiResponse<Void> deleteStudent(@Parameter(description = "学生记录ID") @PathVariable Long id) {
-        Student existingStudent = studentService.getById(id);
-        if (existingStudent == null) {
-            return ApiResponse.notFound();
-        }
-        
-        // 删除学生前应检查是否有成绩等关联数据
-        Long userId = existingStudent.getUserId();
-        Long studentId = existingStudent.getId();
+        Student existingStudent = studentService.getStudentById(id);
         
         // 检查是否有关联的成绩记录
-        LambdaQueryWrapper<Grade> gradeQuery = new LambdaQueryWrapper<>();
-        gradeQuery.eq(Grade::getStudentId, studentId);
-        long gradeCount = gradeService.count(gradeQuery);
-        
+        long gradeCount = gradeService.count(new LambdaQueryWrapper<Grade>().eq(Grade::getStudentId, id));
         if (gradeCount > 0) {
-            log.warn("Cannot delete student with ID {} because there are {} grade records associated", studentId, gradeCount);
-            return ApiResponse.error(400, "该学生有关联的成绩记录，不能直接删除。请先删除相关成绩记录或联系系统管理员");
+            log.warn("Cannot delete student with ID {} because there are {} grade records associated", id, gradeCount);
+            return ApiResponse.error(400, "该学生有关联的成绩记录，不能直接删除。");
         }
         
         // 删除学生记录
-        boolean success = studentService.removeById(id);
-        if (!success) {
+        if (!studentService.removeById(id)) {
             return ApiResponse.error(500, "学生信息删除失败");
         }
         
-        // 不直接删除用户账号，只移除学生角色
-        // 实际业务中可能需要根据用户表中的其他字段进一步判断是否应该删除用户账号
-        log.info("Student record deleted successfully, removing student role from user {}", userId);
-        userRoleService.removeRoleByCode(userId, "STUDENT");
+        log.info("Student record deleted successfully, removing student role from user {}", existingStudent.getUserId());
+        userRoleService.removeRoleByCode(existingStudent.getUserId(), "STUDENT");
         
         return ApiResponse.success("学生信息删除成功", null);
     }
@@ -233,7 +172,7 @@ public class StudentController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "分页查询学生列表(管理员)", description = "可根据学号、姓名、班级ID筛选。需要管理员权限。")
+    @Operation(summary = "分页查询学生列表", description = "可根据学号、姓名、班级ID筛选。需要管理员权限。")
     public ApiResponse<Page<Student>> listStudents(
             @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
