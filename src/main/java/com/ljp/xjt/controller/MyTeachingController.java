@@ -81,7 +81,7 @@ public class MyTeachingController {
     @Operation(summary = "获取指定课程下的班级列表")
     @PreAuthorize("hasRole('TEACHER')")
     public ApiResponse<List<TeacherClassDto>> getMyClassesForCourse(
-            @Parameter(description = "课程ID") @PathVariable Long courseId) {
+            @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId) {
         String username = getCurrentUsername();
         User user = userService.findByUsername(username);
         if (user == null) {
@@ -102,8 +102,8 @@ public class MyTeachingController {
     @Operation(summary = "获取指定班级的学生成绩")
     @PreAuthorize("hasRole('TEACHER')")
     public ApiResponse<List<TeacherGradeDto>> getStudentGradesForClass(
-            @Parameter(description = "课程ID") @PathVariable Long courseId,
-            @Parameter(description = "班级ID") @PathVariable Long classId) {
+            @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId,
+            @Parameter(description = "班级ID") @PathVariable("classId") Long classId) {
         List<TeacherGradeDto> grades = teacherService.findGradesByClassAndCourse(classId, courseId);
         return ApiResponse.success(grades);
     }
