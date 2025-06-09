@@ -71,8 +71,11 @@
             g.id AS gradeId
         FROM grades g
         JOIN students s ON g.student_id = s.id
+        JOIN teaching_assignments ta ON g.course_id = ta.course_id AND s.class_id = ta.class_id
+        JOIN teachers t ON ta.teacher_id = t.id
         WHERE g.course_id = #{courseId}
           AND s.class_id = #{classId}
+          AND t.user_id = #{userId}
     </select>
 
 </mapper> 

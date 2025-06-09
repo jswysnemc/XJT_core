@@ -104,7 +104,12 @@ public class MyTeachingController {
     public ApiResponse<List<TeacherGradeDto>> getStudentGradesForClass(
             @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId,
             @Parameter(description = "班级ID") @PathVariable("classId") Long classId) {
-        List<TeacherGradeDto> grades = teacherService.findGradesByClassAndCourse(classId, courseId);
+        String username = getCurrentUsername();
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            throw new IllegalStateException("用户不存在");
+        }
+        List<TeacherGradeDto> grades = teacherService.findGradesByClassAndCourse(user.getId(), classId, courseId);
         return ApiResponse.success(grades);
     }
 } 

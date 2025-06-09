@@ -174,13 +174,14 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     /**
      * 根据班级ID和课程ID，查询学生成绩列表
      *
-     * @param classId 班级ID
+     * @param userId   用户ID
+     * @param classId  班级ID
      * @param courseId 课程ID
      * @return 学生成绩列表
      */
     @Override
-    public List<TeacherGradeDto> findGradesByClassAndCourse(Long classId, Long courseId) {
-        log.info("Finding grades for class id: {} and course id: {}", classId, courseId);
-        return this.baseMapper.findGradesByClassAndCourse(classId, courseId);
+    public List<TeacherGradeDto> findGradesByClassAndCourse(Long userId, Long classId, Long courseId) {
+        log.info("Finding grades for user id: {}, class id: {} and course id: {}", userId, classId, courseId);
+        return this.baseMapper.findGradesByClassAndCourse(userId, classId, courseId);
     }
 } 

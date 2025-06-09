@@ -99,10 +99,11 @@ public interface TeacherService extends IService<Teacher> {
     /**
      * 根据班级ID和课程ID，查询学生成绩列表
      *
-     * @param classId 班级ID
+     * @param userId   用户ID
+     * @param classId  班级ID
      * @param courseId 课程ID
      * @return 学生成绩列表
      */
-    List<TeacherGradeDto> findGradesByClassAndCourse(Long classId, Long courseId);
+    List<TeacherGradeDto> findGradesByClassAndCourse(Long userId, Long classId, Long courseId);
 
 } 
