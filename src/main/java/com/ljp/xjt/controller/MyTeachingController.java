@@ -1,12 +1,15 @@
 package com.ljp.xjt.controller;
 
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.BatchGradeEntryDto;
+import com.ljp.xjt.dto.BatchGradeResponseDto;
 import com.ljp.xjt.dto.GradeUpdateRequest;
 import com.ljp.xjt.dto.ScoreUpdateRequest;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.dto.StudentDto;
+import com.ljp.xjt.security.SecurityUser;
 import com.ljp.xjt.service.TeacherService;
 import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +17,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +31,7 @@ import java.util.List;
  * @version 1.0
  * @since 2025-06-09
  */
+@Slf4j
 @RestController
 @RequestMapping("/teacher")
 @Tag(name = "教师 - 我的教学", description = "提供教师查询课程、班级、管理成绩等相关接口")
@@ -126,7 +131,7 @@ public class MyTeachingController {
      * @return 操作结果
      */
     @PutMapping("/courses/{courseId}/classes/{classId}/students/{studentId}/grade")
-    @Operation(summary = "修改或录入学生成绩")
+    @Operation(summary = "修改或录入单个学生成绩", description = "为指定班级的指定学生录入或修改一门课程的成绩。")
     @PreAuthorize("hasRole('TEACHER')")
     public ApiResponse<Void> updateStudentGrade(
             @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId,
@@ -151,5 +156,29 @@ public class MyTeachingController {
         } catch (IllegalArgumentException e) {
             return ApiResponse.badRequest(e.getMessage());
         }
+    }
+
+    @PostMapping("/courses/{courseId}/classes/{classId}/grades/batch")
+    @Operation(summary = "批量导入成绩", description = "通过JSON数据批量为指定班级的学生录入或更新某门课程的成绩。")
+    public ApiResponse<BatchGradeResponseDto> batchUpdateGrades(
+            @PathVariable("courseId") Long courseId,
+            @PathVariable("classId") Long classId,
+            @Valid @RequestBody List<BatchGradeEntryDto> gradeEntries) {
+
+        // 1. 从SecurityContext中获取封装好的User实体
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = ((SecurityUser) authentication.getPrincipal()).getUser();
+        Long userId = currentUser.getId();
+
+        log.info("Batch grade update request for courseId: {}, classId: {} by user: {}", courseId, classId, userId);
+
+        // 2. 调用服务层处理批量更新
+        BatchGradeResponseDto responseDto = teacherService.batchUpdateGrades(userId, courseId, classId, gradeEntries);
+
+        // 3. 构建响应消息
+        String message = String.format("批量导入完成。成功 %d 条，失败 %d 条。",
+                responseDto.getSuccessCount(), responseDto.getFailureCount());
+
+        return ApiResponse.success(message, responseDto);
     }
 } 

@@ -10,6 +10,8 @@ import com.ljp.xjt.dto.StudentDto;
 import com.ljp.xjt.dto.TeacherProfileDto;
 import com.ljp.xjt.dto.TeacherProfileUpdateRequestDto;
 import com.ljp.xjt.dto.TeachingStatisticsDto;
+import com.ljp.xjt.dto.BatchGradeEntryDto;
+import com.ljp.xjt.dto.BatchGradeResponseDto;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -146,5 +148,16 @@ public interface TeacherService extends IService<Teacher> {
      * @return 教学统计DTO
      */
     TeachingStatisticsDto getTeachingStatistics(Long teacherId);
+
+    /**
+     * 批量更新或插入学生成绩
+     *
+     * @param userId 操作的教师用户ID
+     * @param courseId 课程ID
+     * @param classId 班级ID
+     * @param gradeEntries 成绩条目列表
+     * @return 批量处理结果
+     */
+    BatchGradeResponseDto batchUpdateGrades(Long userId, Long courseId, Long classId, List<BatchGradeEntryDto> gradeEntries);
 
 } 

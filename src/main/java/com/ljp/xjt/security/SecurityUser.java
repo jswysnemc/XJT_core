@@ -1,73 +1,40 @@
 package com.ljp.xjt.security;
 
+import com.ljp.xjt.entity.User;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 
 /**
- * Spring Security用户详情实现类
+ * 自定义Spring Security用户详情类
  * <p>
- * 封装了用户的核心信息，包括用户ID、用户名、密码和权限集合，
- * 用于Spring Security进行认证和授权。
+ * 继承自Spring Security的User类，并额外封装了我们自己的User实体，
+ * 以便在认证成功后可以在任何地方方便地获取完整的用户信息。
  * </p>
  *
  * @author ljp
  * @version 1.0
  * @since 2025-06-09
  */
-public class SecurityUser implements UserDetails {
+@Getter
+public class SecurityUser extends org.springframework.security.core.userdetails.User {
 
-    private final Long userId;
-    private final String username;
-    private final String password;
-    private final Collection<? extends GrantedAuthority> authorities;
-    private final boolean enabled;
+    /**
+     * 我们自己的用户实体
+     */
+    private final User user;
 
-    public SecurityUser(Long userId, String username, String password, Collection<? extends GrantedAuthority> authorities, boolean enabled) {
-        this.userId = userId;
-        this.username = username;
-        this.password = password;
-        this.authorities = authorities;
-        this.enabled = enabled;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    @Override
-    public String getUsername() {
-        return username;
-    }
-
-    @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
-
-    @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return enabled;
+    /**
+     * 构造函数
+     *
+     * @param user        自定义的用户实体
+     * @param authorities 权限集合
+     */
+    public SecurityUser(User user, Collection<? extends GrantedAuthority> authorities) {
+        // 调用父类构造函数，传入用户名、密码和权限等核心信息
+        super(user.getUsername(), user.getPassword(), user.getStatus() == 1, true, true, true, authorities);
+        // 保存我们自己的User实体
+        this.user = user;
     }
 } 

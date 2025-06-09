@@ -10,9 +10,14 @@ import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.dto.TeacherProfileDto;
 import com.ljp.xjt.dto.TeacherProfileUpdateRequestDto;
 import com.ljp.xjt.dto.TeachingStatisticsDto;
+import com.ljp.xjt.dto.BatchGradeEntryDto;
+import com.ljp.xjt.dto.BatchGradeResponseDto;
+import com.ljp.xjt.dto.FailureDetailDto;
+import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.entity.TeachingAssignment;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.mapper.StudentMapper;
 import com.ljp.xjt.mapper.TeacherMapper;
 import com.ljp.xjt.service.GradeService;
 import com.ljp.xjt.service.StudentService;
@@ -24,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -43,11 +49,13 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     private final GradeService gradeService;
     private final UserService userService;
     private final StudentService studentService;
+    private final StudentMapper studentMapper;
 
-    public TeacherServiceImpl(GradeService gradeService, UserService userService, StudentService studentService) {
+    public TeacherServiceImpl(GradeService gradeService, UserService userService, StudentService studentService, StudentMapper studentMapper) {
         this.gradeService = gradeService;
         this.userService = userService;
         this.studentService = studentService;
+        this.studentMapper = studentMapper;
     }
 
     /**
@@ -306,6 +314,64 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
                 .totalClasses(totalClasses != null ? totalClasses : 0L)
                 .totalStudents(totalStudents != null ? totalStudents : 0L)
                 .averageScore(averageScore) // 如果没有分数，AVG会返回null，这符合预期
+                .build();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public BatchGradeResponseDto batchUpdateGrades(Long userId, Long courseId, Long classId, List<BatchGradeEntryDto> gradeEntries) {
+        // 1. 获取教师ID及校验权限，并获取学期、学年信息
+        Teacher teacher = this.getTeacherByUserId(userId);
+        if (teacher == null) {
+            throw new IllegalArgumentException("无法找到对应的教师信息");
+        }
+        Long teacherId = teacher.getId();
+        TeachingAssignment assignment = gradeService.verifyAndGetTeachingAssignment(teacherId, courseId, classId);
+        String semester = assignment.getSemester();
+        Integer year = assignment.getYear();
+
+        // 2. 初始化结果统计对象
+        List<FailureDetailDto> failures = new ArrayList<>();
+        int successCount = 0;
+        int failureCount = 0;
+
+        // 3. 遍历处理每一个成绩条目
+        for (BatchGradeEntryDto entry : gradeEntries) {
+            // 3.1. 根据学号和班级ID查找学生
+            Student student = studentMapper.findStudentByNumberAndClassId(entry.getStudentNumber(), classId);
+
+            // 3.2. 数据校验
+            if (student == null) {
+                failures.add(new FailureDetailDto(entry.getStudentNumber(), entry.getScore(), "该学号不存在或学生不属于该班级"));
+                failureCount++;
+                continue;
+            }
+            
+            // Score的范围校验已由DTO的注解完成，这里可以省略，但保留逻辑清晰度
+            // if (entry.getScore().compareTo(BigDecimal.ZERO) < 0 || entry.getScore().compareTo(new BigDecimal("100")) > 0) { ... }
+
+            // 3.3. 更新或插入成绩
+            try {
+                boolean result = gradeService.upsertGrade(student.getId(), courseId, entry.getScore(), teacherId, semester, year);
+                if (result) {
+                    successCount++;
+                } else {
+                    // upsertGrade 内部实现决定了它通常不会返回false，除非有未捕获的异常
+                    failures.add(new FailureDetailDto(entry.getStudentNumber(), entry.getScore(), "更新成绩失败"));
+                    failureCount++;
+                }
+            } catch (Exception e) {
+                log.error("Error updating grade for student {}: {}", entry.getStudentNumber(), e.getMessage());
+                failures.add(new FailureDetailDto(entry.getStudentNumber(), entry.getScore(), "服务器内部错误"));
+                failureCount++;
+            }
+        }
+
+        // 4. 构建响应DTO
+        return BatchGradeResponseDto.builder()
+                .successCount(successCount)
+                .failureCount(failureCount)
+                .failures(failures)
                 .build();
     }
 } 

@@ -29,4 +29,21 @@
     </select>
     -->
 
+    <!-- 根据学号和班级ID查找学生 -->
+    <select id="findStudentByNumberAndClassId" resultType="com.ljp.xjt.entity.Student">
+        SELECT
+            id,
+            student_name,
+            student_number,
+            gender,
+            class_id,
+            user_id
+        FROM
+            students
+        WHERE
+            student_number = #{studentNumber}
+        AND
+            class_id = #{classId}
+    </select>
+
 </mapper> 

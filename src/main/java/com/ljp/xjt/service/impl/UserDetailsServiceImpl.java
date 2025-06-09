@@ -1,6 +1,7 @@
 package com.ljp.xjt.service.impl;
 
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.security.SecurityUser;
 import com.ljp.xjt.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
@@ -66,16 +67,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         }
 
 
-        // 3. 创建Spring Security的UserDetails对象
-        //    参数分别为：用户名，密码，是否启用，账户是否未过期，凭证是否未过期，账户是否未锁定，权限列表
-        return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPassword(),
-                user.getStatus() == 1, // 1表示启用
-                true, // accountNonExpired
-                true, // credentialsNonExpired
-                true, // accountNonLocked
-                authorities
-        );
+        // 3. 创建并返回自定义的SecurityUser对象
+        //    这将我们的User实体封装到Spring Security的UserDetails中
+        return new SecurityUser(user, authorities);
     }
 } 
