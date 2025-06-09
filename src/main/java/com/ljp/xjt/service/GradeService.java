@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Grade;
+import com.ljp.xjt.entity.TeachingAssignment;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -130,14 +132,14 @@ public interface GradeService extends IService<Grade> {
     Map<String, Object> getGradeStatistics(Long classId, Long courseId, String semester, Integer year);
 
     /**
-     * 检查教师是否有权限操作该课程成绩
-     * 
+     * 验证教师权限并返回教学安排
+     *
      * @param teacherId 教师ID
      * @param courseId 课程ID
-     * @param classId 班级ID（可选）
-     * @return 是否有权限
+     * @param classId 班级ID
+     * @return 教学安排实体，如果无权限则抛出SecurityException
      */
-    boolean checkTeacherPermission(Long teacherId, Long courseId, Long classId);
+    TeachingAssignment verifyAndGetTeachingAssignment(Long teacherId, Long courseId, Long classId);
 
     /**
      * 审核成绩（标记或取消标记为异常）
@@ -148,4 +150,17 @@ public interface GradeService extends IService<Grade> {
      * @return 是否成功
      */
     boolean reviewGrade(Long id, Integer isAbnormal, String remarks);
+
+    /**
+     * 更新或插入一条成绩记录
+     *
+     * @param studentId 学生ID
+     * @param courseId  课程ID
+     * @param score     分数
+     * @param teacherId 操作的教师ID
+     * @param semester  学期
+     * @param year      学年
+     * @return 操作是否成功
+     */
+    boolean upsertGrade(Long studentId, Long courseId, BigDecimal score, Long teacherId, String semester, Integer year);
 }

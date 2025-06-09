@@ -122,6 +122,26 @@ public class ApiResponse<T> {
     }
 
     /**
+     * 创建权限不足响应（403状态码）
+     *
+     * @param message 自定义消息
+     * @return 权限不足响应对象
+     */
+    public static <T> ApiResponse<T> forbidden(String message) {
+        return new ApiResponse<>(403, message, null, LocalDateTime.now());
+    }
+
+    /**
+     * 创建错误请求响应（400状态码）
+     *
+     * @param message 错误消息
+     * @return 错误请求响应对象
+     */
+    public static <T> ApiResponse<T> badRequest(String message) {
+        return new ApiResponse<>(400, message, null, LocalDateTime.now());
+    }
+
+    /**
      * 创建未授权响应（401状态码）
      *
      * @return 未授权响应对象

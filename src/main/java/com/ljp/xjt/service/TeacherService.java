@@ -8,6 +8,7 @@ import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.dto.StudentDto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -105,5 +106,17 @@ public interface TeacherService extends IService<Teacher> {
      * @return 学生列表
      */
     List<StudentDto> findStudentsByClassAndCourse(Long userId, Long classId, Long courseId);
+
+    /**
+     * 更新学生成绩
+     *
+     * @param userId    当前操作的教师用户ID
+     * @param courseId  课程ID
+     * @param classId   班级ID
+     * @param studentId 学生ID
+     * @param score     新的分数
+     * @return 操作是否成功
+     */
+    boolean updateGrade(Long userId, Long courseId, Long classId, Long studentId, BigDecimal score);
 
 } 

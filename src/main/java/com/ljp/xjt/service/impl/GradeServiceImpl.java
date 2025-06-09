@@ -7,8 +7,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.entity.Grade;
 import com.ljp.xjt.entity.Student;
+import com.ljp.xjt.entity.TeachingAssignment;
 import com.ljp.xjt.mapper.GradeMapper;
 import com.ljp.xjt.mapper.StudentMapper;
+import com.ljp.xjt.mapper.TeachingAssignmentMapper;
 import com.ljp.xjt.service.GradeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.math.BigDecimal;
 
 /**
  * 成绩服务实现类
@@ -37,6 +40,7 @@ import java.util.Map;
 public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements GradeService {
 
     private final StudentMapper studentMapper;
+    private final TeachingAssignmentMapper teachingAssignmentMapper;
 
     /**
      * 录入成绩
@@ -365,21 +369,6 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     }
 
     /**
-     * 检查教师是否有权限操作该课程成绩
-     *
-     * @param teacherId 教师ID
-     * @param courseId 课程ID
-     * @param classId 班级ID（可选）
-     * @return 是否有权限
-     */
-    @Override
-    public boolean checkTeacherPermission(Long teacherId, Long courseId, Long classId) {
-        //  后续应通过 Spring Security 进行更精细的权限控制
-        log.warn("Bypassing teacher permission check for teacherId: {}, courseId: {}, classId: {}. Implement proper security checks.", teacherId, courseId, classId);
-        return true;
-    }
-
-    /**
      * 审核成绩（标记或取消标记为异常）
      *
      * @param id 成绩ID
@@ -390,21 +379,83 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean reviewGrade(Long id, Integer isAbnormal, String remarks) {
-        log.info("Reviewing grade: {}, isAbnormal: {}", id, isAbnormal);
+        log.info("Reviewing grade: {}, setting isAbnormal to {}", id, isAbnormal);
         
-        // 1. 获取成绩信息
-        Grade grade = this.getById(id);
-        if (grade == null) {
+        // 1. 获取原成绩信息
+        Grade existingGrade = this.getById(id);
+        if (existingGrade == null) {
             log.error("Grade not found: {}", id);
             throw new IllegalArgumentException("成绩不存在");
         }
-        
-        // 2. 更新异常状态和备注
+
+        // 2. 更新审核状态和备注
         LambdaUpdateWrapper<Grade> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.eq(Grade::getId, id)
-                   .set(Grade::getIsAbnormal, isAbnormal)
-                   .set(remarks != null, Grade::getRemarks, remarks);
+                     .set(Grade::getIsAbnormal, isAbnormal)
+                     .set(Grade::getRemarks, remarks);
         
         return this.update(updateWrapper);
+    }
+
+    @Override
+    public TeachingAssignment verifyAndGetTeachingAssignment(Long teacherId, Long courseId, Long classId) {
+        LambdaQueryWrapper<TeachingAssignment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(TeachingAssignment::getTeacherId, teacherId)
+                    .eq(TeachingAssignment::getCourseId, courseId)
+                    .eq(TeachingAssignment::getClassId, classId);
+        
+        TeachingAssignment assignment = teachingAssignmentMapper.selectOne(queryWrapper);
+        if (assignment == null) {
+            throw new SecurityException("无权操作，该教师未被指派教授此班级的该门课程");
+        }
+        return assignment;
+    }
+
+    /**
+     * 更新或插入一条成绩记录
+     *
+     * @param studentId 学生ID
+     * @param courseId  课程ID
+     * @param score     分数
+     * @param teacherId 操作的教师ID
+     * @param semester  学期
+     * @param year      学年
+     * @return 操作是否成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean upsertGrade(Long studentId, Long courseId, BigDecimal score, Long teacherId, String semester, Integer year) {
+        log.info("Upserting grade for student {}, course {}", studentId, courseId);
+
+        // 1. 查找是否已存在该学生该课程的成绩记录
+        LambdaQueryWrapper<Grade> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Grade::getStudentId, studentId)
+                    .eq(Grade::getCourseId, courseId);
+        
+        Grade existingGrade = this.getOne(queryWrapper);
+
+        if (existingGrade != null) {
+            // 2a. 如果存在，则更新
+            log.info("Grade found (id: {}), updating score to {}", existingGrade.getId(), score);
+            existingGrade.setScore(score);
+            existingGrade.setIsAbnormal(0); // 每次教师修改都重置为正常状态
+            existingGrade.setSemester(semester);
+            existingGrade.setYear(year);
+            return this.updateById(existingGrade);
+        } else {
+            // 2b. 如果不存在，则插入新记录
+            log.info("Grade not found, creating new one with score {}", score);
+            Grade newGrade = new Grade();
+            newGrade.setStudentId(studentId);
+            newGrade.setCourseId(courseId);
+            newGrade.setScore(score);
+            newGrade.setCreatedBy(teacherId);
+            newGrade.setIsAbnormal(0); // 默认为正常状态
+            newGrade.setSemester(semester);
+            newGrade.setYear(year);
+            // 注意：gradeType字段可能需要根据业务逻辑设置默认值或从其他地方获取
+            // 这里暂时不设置
+            return this.save(newGrade);
+        }
     }
 }

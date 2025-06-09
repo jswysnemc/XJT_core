@@ -1,6 +1,8 @@
 package com.ljp.xjt.controller;
 
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.GradeUpdateRequest;
+import com.ljp.xjt.dto.ScoreUpdateRequest;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
@@ -10,6 +12,7 @@ import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -111,5 +114,42 @@ public class MyTeachingController {
         }
         List<StudentDto> students = teacherService.findStudentsByClassAndCourse(user.getId(), classId, courseId);
         return ApiResponse.success(students);
+    }
+
+    /**
+     * 修改或录入学生成绩
+     *
+     * @param courseId 课程ID
+     * @param classId  班级ID
+     * @param studentId 学生ID
+     * @param request 包含分数的请求体
+     * @return 操作结果
+     */
+    @PutMapping("/courses/{courseId}/classes/{classId}/students/{studentId}/grade")
+    @Operation(summary = "修改或录入学生成绩")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ApiResponse<Void> updateStudentGrade(
+            @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId,
+            @Parameter(description = "班级ID") @PathVariable("classId") Long classId,
+            @Parameter(description = "学生ID") @PathVariable("studentId") Long studentId,
+            @Valid @RequestBody ScoreUpdateRequest request) {
+        String username = getCurrentUsername();
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            throw new IllegalStateException("用户不存在");
+        }
+        
+        try {
+            boolean success = teacherService.updateGrade(user.getId(), courseId, classId, studentId, request.getScore());
+            if (success) {
+                return ApiResponse.success("成绩更新成功");
+            } else {
+                return ApiResponse.error("成绩更新失败");
+            }
+        } catch (SecurityException e) {
+            return ApiResponse.forbidden(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.badRequest(e.getMessage());
+        }
     }
 } 

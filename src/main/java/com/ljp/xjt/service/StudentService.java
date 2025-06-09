@@ -33,6 +33,23 @@ public interface StudentService extends IService<Student> {
      */
     Student findByUserId(Long userId);
 
+    /**
+     * 获取学生信息
+     *
+     * @param id 学生ID
+     * @return 业务异常，如果学生不存在
+     */
+    Student getStudentById(Long id);
+
+    /**
+     * 检查学生是否属于指定班级
+     *
+     * @param studentId 学生ID
+     * @param classId 班级ID
+     * @return 如果学生属于该班级，则返回true，否则返回false
+     */
+    boolean isStudentInClass(Long studentId, Long classId);
+
     // 未来可以添加更多业务方法，例如：
     // Page<StudentDTO> findStudentsWithDetails(Page<Student> page, StudentQueryParam queryParam);
 } 

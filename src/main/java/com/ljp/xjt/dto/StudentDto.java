@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+
 /**
  * 学生数据传输对象
  * <p>
@@ -38,6 +40,6 @@ public class StudentDto {
     @Schema(description = "班级名称", example = "物理2301班")
     private String className;
 
-    @Schema(description = "课程成绩", example = "88.5")
-    private Double score;
+    @Schema(description = "课程成绩", example = "88.50")
+    private BigDecimal score;
 } 

@@ -27,6 +27,7 @@ public class GradeUpdateRequest {
         @NotNull(message = "学生ID不能为空")
         private Long studentId;
 
+        // 允许分数为null，表示可能只是想创建占位记录
         private BigDecimal score;
     }
 } 

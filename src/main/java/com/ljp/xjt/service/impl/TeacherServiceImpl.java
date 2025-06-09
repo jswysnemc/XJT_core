@@ -8,13 +8,17 @@ import com.ljp.xjt.dto.StudentDto;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.entity.Teacher;
+import com.ljp.xjt.entity.TeachingAssignment;
 import com.ljp.xjt.mapper.TeacherMapper;
+import com.ljp.xjt.service.GradeService;
+import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.TeacherService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -31,6 +35,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> implements TeacherService {
+
+    private final GradeService gradeService;
+    private final StudentService studentService;
 
     /**
      * 分页查询教师列表
@@ -183,5 +190,39 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     public List<StudentDto> findStudentsByClassAndCourse(Long userId, Long classId, Long courseId) {
         log.info("Finding students for user id: {}, class id: {} and course id: {}", userId, classId, courseId);
         return this.baseMapper.findStudentsByClassAndCourse(userId, classId, courseId);
+    }
+
+    /**
+     * 更新学生成绩
+     *
+     * @param userId    当前操作的教师用户ID
+     * @param courseId  课程ID
+     * @param classId   班级ID
+     * @param studentId 学生ID
+     * @param score     新的分数
+     * @return 操作是否成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateGrade(Long userId, Long courseId, Long classId, Long studentId, BigDecimal score) {
+        // 1. 获取教师实体ID
+        Teacher teacher = baseMapper.selectByUserId(userId);
+        if (teacher == null) {
+            throw new IllegalArgumentException("无法找到对应的教师信息");
+        }
+        Long teacherId = teacher.getId();
+
+        // 2. 权限校验：并获取学期、学年信息
+        TeachingAssignment assignment = gradeService.verifyAndGetTeachingAssignment(teacherId, courseId, classId);
+        String semester = assignment.getSemester();
+        Integer year = assignment.getYear();
+
+        // 3. 学生归属校验：检查学生是否属于该班级
+        if (!studentService.isStudentInClass(studentId, classId)) {
+            throw new IllegalArgumentException("该学生不属于指定班级");
+        }
+
+        // 4. 更新或插入成绩
+        return gradeService.upsertGrade(studentId, courseId, score, teacherId, semester, year);
     }
 } 

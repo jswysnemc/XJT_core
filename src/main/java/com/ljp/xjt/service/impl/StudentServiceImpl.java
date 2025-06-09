@@ -58,4 +58,35 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         queryWrapper.eq(Student::getUserId, userId);
         return baseMapper.selectOne(queryWrapper);
     }
+
+    /**
+     * 获取学生信息
+     *
+     * @param id 学生ID
+     * @return 业务异常，如果学生不存在
+     */
+    @Override
+    public Student getStudentById(Long id) {
+        Student student = baseMapper.selectById(id);
+        if (student == null) {
+            throw new IllegalArgumentException("ID为 " + id + " 的学生不存在");
+        }
+        return student;
+    }
+
+    /**
+     * 检查学生是否属于指定班级
+     *
+     * @param studentId 学生ID
+     * @param classId 班级ID
+     * @return 如果学生属于该班级，则返回true，否则返回false
+     */
+    @Override
+    public boolean isStudentInClass(Long studentId, Long classId) {
+        if (studentId == null || classId == null) {
+            return false;
+        }
+        Student student = this.getStudentById(studentId);
+        return classId.equals(student.getClassId());
+    }
 } 
