@@ -62,20 +62,25 @@
         WHERE t.user_id = #{userId} AND ta.course_id = #{courseId}
     </select>
 
-    <!-- 根据班级ID和课程ID，查询学生成绩列表 -->
-    <select id="findGradesByClassAndCourse" resultType="com.ljp.xjt.dto.TeacherGradeDto">
+    <!-- 根据用户ID、班级ID和课程ID，查询学生列表 -->
+    <select id="findStudentsByClassAndCourse" resultType="com.ljp.xjt.dto.StudentDto">
         SELECT
             s.id AS studentId,
+            s.student_number AS studentNumber,
             s.student_name AS studentName,
-            g.score,
-            g.id AS gradeId
-        FROM grades g
-        JOIN students s ON g.student_id = s.id
-        JOIN teaching_assignments ta ON g.course_id = ta.course_id AND s.class_id = ta.class_id
+            c.course_name as courseName,
+            cl.class_name as className,
+            g.score
+        FROM students s
+        JOIN teaching_assignments ta ON s.class_id = ta.class_id
         JOIN teachers t ON ta.teacher_id = t.id
-        WHERE g.course_id = #{courseId}
+        JOIN courses c ON ta.course_id = c.id
+        JOIN classes cl ON s.class_id = cl.id
+        LEFT JOIN grades g ON s.id = g.student_id AND ta.course_id = g.course_id
+        WHERE ta.course_id = #{courseId}
           AND s.class_id = #{classId}
           AND t.user_id = #{userId}
+        ORDER BY s.student_number
     </select>
 
 </mapper> 

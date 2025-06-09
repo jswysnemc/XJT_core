@@ -4,7 +4,7 @@ import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
-import com.ljp.xjt.dto.TeacherGradeDto;
+import com.ljp.xjt.dto.StudentDto;
 import com.ljp.xjt.service.TeacherService;
 import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -92,16 +92,16 @@ public class MyTeachingController {
     }
 
     /**
-     * 获取指定课程和班级的学生成绩列表
+     * 获取指定课程和班级的学生名册（包含成绩）
      *
      * @param courseId 课程ID
      * @param classId  班级ID
-     * @return 成绩列表
+     * @return 学生名册列表
      */
-    @GetMapping("/courses/{courseId}/classes/{classId}/grades")
-    @Operation(summary = "获取指定班级的学生成绩")
+    @GetMapping("/courses/{courseId}/classes/{classId}/roster")
+    @Operation(summary = "获取指定班级的学生名册（含成绩）")
     @PreAuthorize("hasRole('TEACHER')")
-    public ApiResponse<List<TeacherGradeDto>> getStudentGradesForClass(
+    public ApiResponse<List<StudentDto>> getClassRoster(
             @Parameter(description = "课程ID") @PathVariable("courseId") Long courseId,
             @Parameter(description = "班级ID") @PathVariable("classId") Long classId) {
         String username = getCurrentUsername();
@@ -109,7 +109,7 @@ public class MyTeachingController {
         if (user == null) {
             throw new IllegalStateException("用户不存在");
         }
-        List<TeacherGradeDto> grades = teacherService.findGradesByClassAndCourse(user.getId(), classId, courseId);
-        return ApiResponse.success(grades);
+        List<StudentDto> students = teacherService.findStudentsByClassAndCourse(user.getId(), classId, courseId);
+        return ApiResponse.success(students);
     }
 } 

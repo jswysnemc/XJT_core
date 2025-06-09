@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
-import com.ljp.xjt.dto.TeacherGradeDto;
+import com.ljp.xjt.dto.StudentDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -71,12 +71,12 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
     List<TeacherClassDto> findClassesByCourseId(@Param("userId") Long userId, @Param("courseId") Long courseId);
 
     /**
-     * 根据班级ID和课程ID，查询学生成绩列表
+     * 根据用户ID、班级ID和课程ID，查询学生列表
      *
      * @param userId   用户ID
      * @param classId  班级ID
      * @param courseId 课程ID
-     * @return 学生成绩列表
+     * @return 学生列表
      */
-    List<TeacherGradeDto> findGradesByClassAndCourse(@Param("userId") Long userId, @Param("classId") Long classId, @Param("courseId") Long courseId);
+    List<StudentDto> findStudentsByClassAndCourse(@Param("userId") Long userId, @Param("classId") Long classId, @Param("courseId") Long courseId);
 } 

@@ -6,7 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
-import com.ljp.xjt.dto.TeacherGradeDto;
+import com.ljp.xjt.dto.StudentDto;
 
 import java.util.List;
 
@@ -97,13 +97,13 @@ public interface TeacherService extends IService<Teacher> {
     List<TeacherClassDto> findClassesByCourseId(Long userId, Long courseId);
 
     /**
-     * 根据班级ID和课程ID，查询学生成绩列表
+     * 根据用户ID、班级ID和课程ID，查询学生列表
      *
      * @param userId   用户ID
      * @param classId  班级ID
      * @param courseId 课程ID
-     * @return 学生成绩列表
+     * @return 学生列表
      */
-    List<TeacherGradeDto> findGradesByClassAndCourse(Long userId, Long classId, Long courseId);
+    List<StudentDto> findStudentsByClassAndCourse(Long userId, Long classId, Long courseId);
 
 } 
