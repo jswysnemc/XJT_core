@@ -83,4 +83,57 @@
         ORDER BY s.student_number
     </select>
 
+    <!-- 根据用户ID查询教师的详细个人资料 -->
+    <select id="findTeacherProfileByUserId" resultType="com.ljp.xjt.dto.TeacherProfileDto">
+        SELECT
+            t.id AS teacherId,
+            t.teacher_number AS teacherNumber,
+            t.teacher_name AS teacherName,
+            t.gender,
+            t.title,
+            t.department_id AS departmentId,
+            d.dept_name AS departmentName,
+            u.id AS userId,
+            u.email,
+            u.phone
+        FROM
+            teachers t
+        JOIN
+            users u ON t.user_id = u.id
+        LEFT JOIN
+            departments d ON t.department_id = d.id
+        WHERE
+            t.user_id = #{userId}
+    </select>
+
+    <!-- 根据教师ID统计其教授的课程总数 -->
+    <select id="countTaughtCourses" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT course_id)
+        FROM teaching_assignments
+        WHERE teacher_id = #{teacherId}
+    </select>
+
+    <!-- 根据教师ID统计其教授的班级总数 -->
+    <select id="countTaughtClasses" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT class_id)
+        FROM teaching_assignments
+        WHERE teacher_id = #{teacherId}
+    </select>
+
+    <!-- 根据教师ID统计其教授的学生总数 -->
+    <select id="countTaughtStudents" resultType="java.lang.Long">
+        SELECT COUNT(DISTINCT g.student_id)
+        FROM grades g
+        INNER JOIN teaching_assignments ta ON g.course_id = ta.course_id
+        WHERE ta.teacher_id = #{teacherId}
+    </select>
+
+    <!-- 根据教师ID计算其所有学生的平均分 -->
+    <select id="calculateAverageScore" resultType="java.math.BigDecimal">
+        SELECT AVG(g.score)
+        FROM grades g
+        INNER JOIN teaching_assignments ta ON g.course_id = ta.course_id
+        WHERE ta.teacher_id = #{teacherId}
+    </select>
+
 </mapper> 

@@ -7,6 +7,9 @@ import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.dto.StudentDto;
+import com.ljp.xjt.dto.TeacherProfileDto;
+import com.ljp.xjt.dto.TeacherProfileUpdateRequestDto;
+import com.ljp.xjt.dto.TeachingStatisticsDto;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -118,5 +121,30 @@ public interface TeacherService extends IService<Teacher> {
      * @return 操作是否成功
      */
     boolean updateGrade(Long userId, Long courseId, Long classId, Long studentId, BigDecimal score);
+
+    /**
+     * 根据用户ID获取教师的详细个人资料
+     *
+     * @param userId 用户ID
+     * @return 教师个人资料DTO
+     */
+    TeacherProfileDto getTeacherProfileByUserId(Long userId);
+
+    /**
+     * 更新教师个人资料
+     *
+     * @param userId 用户ID
+     * @param updateDto 更新请求的数据传输对象
+     * @return 如果更新成功则返回true，否则返回false
+     */
+    boolean updateTeacherProfile(Long userId, TeacherProfileUpdateRequestDto updateDto);
+
+    /**
+     * 获取指定教师的教学统计信息
+     *
+     * @param teacherId 教师ID
+     * @return 教学统计DTO
+     */
+    TeachingStatisticsDto getTeachingStatistics(Long teacherId);
 
 } 

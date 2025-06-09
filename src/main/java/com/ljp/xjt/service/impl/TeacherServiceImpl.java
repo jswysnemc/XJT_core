@@ -7,16 +7,21 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.dto.StudentDto;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
+import com.ljp.xjt.dto.TeacherProfileDto;
+import com.ljp.xjt.dto.TeacherProfileUpdateRequestDto;
+import com.ljp.xjt.dto.TeachingStatisticsDto;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.entity.TeachingAssignment;
+import com.ljp.xjt.entity.User;
 import com.ljp.xjt.mapper.TeacherMapper;
 import com.ljp.xjt.service.GradeService;
 import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.TeacherService;
-import lombok.RequiredArgsConstructor;
+import com.ljp.xjt.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -33,11 +38,17 @@ import java.util.List;
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> implements TeacherService {
 
     private final GradeService gradeService;
+    private final UserService userService;
     private final StudentService studentService;
+
+    public TeacherServiceImpl(GradeService gradeService, UserService userService, StudentService studentService) {
+        this.gradeService = gradeService;
+        this.userService = userService;
+        this.studentService = studentService;
+    }
 
     /**
      * 分页查询教师列表
@@ -224,5 +235,77 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
 
         // 4. 更新或插入成绩
         return gradeService.upsertGrade(studentId, courseId, score, teacherId, semester, year);
+    }
+
+    @Override
+    public TeacherProfileDto getTeacherProfileByUserId(Long userId) {
+        return baseMapper.findTeacherProfileByUserId(userId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateTeacherProfile(Long userId, TeacherProfileUpdateRequestDto updateDto) {
+        boolean teacherUpdated = false;
+        boolean userUpdated = false;
+
+        // 1. 根据userId找到教师实体
+        Teacher teacher = this.getTeacherByUserId(userId);
+        if (teacher == null) {
+            log.warn("Attempted to update profile for a non-existent teacher with user ID: {}", userId);
+            return false;
+        }
+
+        // 2. 更新教师表(teachers)中的信息
+        if (StringUtils.hasText(updateDto.getTeacherName()) && !updateDto.getTeacherName().equals(teacher.getTeacherName())) {
+            teacher.setTeacherName(updateDto.getTeacherName());
+            teacherUpdated = true;
+        }
+
+        if (teacherUpdated) {
+            this.updateById(teacher);
+        }
+
+        // 3. 更新用户表(users)中的信息
+        User user = userService.getById(userId);
+        if (user == null) {
+            log.error("Data inconsistency: Teacher found but corresponding User not found for ID: {}", userId);
+            // 抛出异常以回滚事务
+            throw new IllegalStateException("用户数据不存在，请联系管理员");
+        }
+
+        if (StringUtils.hasText(updateDto.getEmail()) && !updateDto.getEmail().equals(user.getEmail())) {
+            // 在实际应用中，可能需要检查邮箱是否已被其他用户使用
+            user.setEmail(updateDto.getEmail());
+            userUpdated = true;
+        }
+
+        if (StringUtils.hasText(updateDto.getPhone()) && !updateDto.getPhone().equals(user.getPhone())) {
+            user.setPhone(updateDto.getPhone());
+            userUpdated = true;
+        }
+
+        if (userUpdated) {
+            userService.updateById(user);
+        }
+
+        // 只要有任何一部分更新了，就认为操作是成功的
+        return teacherUpdated || userUpdated;
+    }
+
+    @Override
+    public TeachingStatisticsDto getTeachingStatistics(Long teacherId) {
+        // 1. 分别调用Mapper方法获取各项统计数据
+        Long totalCourses = baseMapper.countTaughtCourses(teacherId);
+        Long totalClasses = baseMapper.countTaughtClasses(teacherId);
+        Long totalStudents = baseMapper.countTaughtStudents(teacherId);
+        BigDecimal averageScore = baseMapper.calculateAverageScore(teacherId);
+
+        // 2. 使用Builder模式构建DTO对象
+        return TeachingStatisticsDto.builder()
+                .totalCourses(totalCourses != null ? totalCourses : 0L)
+                .totalClasses(totalClasses != null ? totalClasses : 0L)
+                .totalStudents(totalStudents != null ? totalStudents : 0L)
+                .averageScore(averageScore) // 如果没有分数，AVG会返回null，这符合预期
+                .build();
     }
 } 

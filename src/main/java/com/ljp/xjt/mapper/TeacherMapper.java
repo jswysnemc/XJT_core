@@ -7,9 +7,11 @@ import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
 import com.ljp.xjt.dto.StudentDto;
+import com.ljp.xjt.dto.TeacherProfileDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -79,4 +81,44 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
      * @return 学生列表
      */
     List<StudentDto> findStudentsByClassAndCourse(@Param("userId") Long userId, @Param("classId") Long classId, @Param("courseId") Long courseId);
+
+    /**
+     * 根据用户ID查询教师的详细个人资料
+     *
+     * @param userId 用户ID
+     * @return 教师个人资料DTO
+     */
+    TeacherProfileDto findTeacherProfileByUserId(@Param("userId") Long userId);
+
+    /**
+     * 根据教师ID统计其教授的课程总数
+     *
+     * @param teacherId 教师ID
+     * @return 课程总数
+     */
+    Long countTaughtCourses(@Param("teacherId") Long teacherId);
+
+    /**
+     * 根据教师ID统计其教授的班级总数
+     *
+     * @param teacherId 教师ID
+     * @return 班级总数
+     */
+    Long countTaughtClasses(@Param("teacherId") Long teacherId);
+
+    /**
+     * 根据教师ID统计其教授的学生总数
+     *
+     * @param teacherId 教师ID
+     * @return 学生总数
+     */
+    Long countTaughtStudents(@Param("teacherId") Long teacherId);
+
+    /**
+     * 根据教师ID计算其所有学生的平均分
+     *
+     * @param teacherId 教师ID
+     * @return 平均分
+     */
+    BigDecimal calculateAverageScore(@Param("teacherId") Long teacherId);
 } 
