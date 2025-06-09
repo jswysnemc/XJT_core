@@ -3,6 +3,8 @@ package com.ljp.xjt.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ljp.xjt.dto.AdminGradeDto;
+import com.ljp.xjt.dto.AdminGradeUpdateRequestDto;
 import com.ljp.xjt.entity.Grade;
 import com.ljp.xjt.entity.TeachingAssignment;
 
@@ -163,4 +165,31 @@ public interface GradeService extends IService<Grade> {
      * @return 操作是否成功
      */
     boolean upsertGrade(Long studentId, Long courseId, BigDecimal score, Long teacherId, String semester, Integer year);
+
+    /**
+     * 根据管理员筛选条件分页查询成绩列表
+     *
+     * @param page          分页对象
+     * @param classId       班级ID
+     * @param courseId      课程ID
+     * @param studentName   学生姓名 (模糊查询)
+     * @param studentNumber 学号 (模糊查询)
+     * @return 分页后的成绩列表
+     */
+    IPage<AdminGradeDto> getGradesByAdminCriteria(
+            Page<AdminGradeDto> page,
+            Long classId,
+            Long courseId,
+            String studentName,
+            String studentNumber
+    );
+
+    /**
+     * 管理员更新成绩信息
+     *
+     * @param gradeId   要更新的成绩ID
+     * @param updateDto 包含新分数和复核状态的DTO
+     * @return 是否更新成功
+     */
+    boolean adminUpdateGrade(Long gradeId, AdminGradeUpdateRequestDto updateDto);
 }

@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ljp.xjt.dto.AdminGradeDto;
+import com.ljp.xjt.dto.AdminGradeUpdateRequestDto;
 import com.ljp.xjt.entity.Grade;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.TeachingAssignment;
@@ -23,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * 成绩服务实现类
@@ -457,5 +460,73 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
             // 这里暂时不设置
             return this.save(newGrade);
         }
+    }
+
+    @Override
+    public IPage<AdminGradeDto> getGradesByAdminCriteria(Page<AdminGradeDto> page, Long classId, Long courseId, String studentName, String studentNumber) {
+        // 1. 调用Mapper进行数据库查询
+        IPage<AdminGradeDto> gradePage = baseMapper.findGradesByAdminCriteria(page, classId, courseId, studentName, studentNumber);
+
+        // 2. 对查询结果进行二次处理，计算GPA和判断成绩是否正常
+        gradePage.getRecords().forEach(grade -> {
+            grade.setGpa(calculateGpa(grade.getScore()));
+            grade.setNormal(isScoreNormal(grade.getScore()));
+        });
+
+        return gradePage;
+    }
+
+    @Override
+    @Transactional
+    public boolean adminUpdateGrade(Long gradeId, AdminGradeUpdateRequestDto updateDto) {
+        // 1. 根据ID查找成绩记录
+        Grade grade = this.getById(gradeId);
+        if (grade == null) {
+            log.warn("Attempted to update a non-existent grade with ID: {}", gradeId);
+            throw new IllegalArgumentException("要修改的成绩记录不存在");
+        }
+
+        // 2. 使用DTO更新成绩实体
+        grade.setScore(updateDto.getScore());
+        grade.setReviewed(updateDto.getIsReviewed());
+        
+        // 注意：管理员修改成绩时，不更新 `updated_by_teacher_id`
+
+        // 3. 保存更新
+        return this.updateById(grade);
+    }
+
+    /**
+     * 根据分数计算绩点 (GPA)
+     * @param score 分数
+     * @return 绩点
+     */
+    private BigDecimal calculateGpa(BigDecimal score) {
+        if (score == null) {
+            return BigDecimal.ZERO;
+        }
+        if (score.compareTo(new BigDecimal("90")) >= 0) {
+            return new BigDecimal("4.0");
+        } else if (score.compareTo(new BigDecimal("80")) >= 0) {
+            return new BigDecimal("3.0");
+        } else if (score.compareTo(new BigDecimal("70")) >= 0) {
+            return new BigDecimal("2.0");
+        } else if (score.compareTo(new BigDecimal("60")) >= 0) {
+            return new BigDecimal("1.0");
+        } else {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    /**
+     * 判断成绩是否及格（正常）
+     * @param score 分数
+     * @return 是否及格
+     */
+    private boolean isScoreNormal(BigDecimal score) {
+        if (score == null) {
+            return false;
+        }
+        return score.compareTo(new BigDecimal("60")) >= 0;
     }
 }

@@ -62,6 +62,26 @@ public class Grade implements Serializable {
     @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedTime;  // 更新时间
 
+    /**
+     * 更新者ID，记录该次成绩由哪位教师更新
+     */
+    @TableField("updated_by_teacher_id")
+    private Long updatedByTeacherId;
+    
+    /**
+     * 成绩是否经过管理员复核
+     */
+    @TableField("is_reviewed")
+    private Boolean isReviewed;
+
+    public Boolean isReviewed() {
+        return isReviewed;
+    }
+
+    public void setReviewed(Boolean reviewed) {
+        isReviewed = reviewed;
+    }
+
     // 扩展字段，不在表中
     @TableField(exist = false)
     private String studentName;         // 学生姓名，用于关联查询
