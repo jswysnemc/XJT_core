@@ -4,8 +4,13 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.entity.Teacher;
+import com.ljp.xjt.dto.TeacherClassDto;
+import com.ljp.xjt.dto.TeacherCourseDto;
+import com.ljp.xjt.dto.TeacherGradeDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 /**
  * 教师数据访问接口
@@ -47,4 +52,30 @@ public interface TeacherMapper extends BaseMapper<Teacher> {
      * @return 存在数量
      */
     int checkTeacherNumberExists(@Param("teacherNumber") String teacherNumber);
+
+    /**
+     * 根据用户ID查询该教师所教授的课程列表
+     *
+     * @param userId 用户ID
+     * @return 教师课程列表
+     */
+    List<TeacherCourseDto> findCoursesByUserId(@Param("userId") Long userId);
+
+    /**
+     * 根据用户ID和课程ID，查询该教师在该课程下所教授的班级列表
+     *
+     * @param userId 用户ID
+     * @param courseId 课程ID
+     * @return 教师班级列表
+     */
+    List<TeacherClassDto> findClassesByCourseId(@Param("userId") Long userId, @Param("courseId") Long courseId);
+
+    /**
+     * 根据班级ID和课程ID，查询学生成绩列表
+     *
+     * @param classId 班级ID
+     * @param courseId 课程ID
+     * @return 学生成绩列表
+     */
+    List<TeacherGradeDto> findGradesByClassAndCourse(@Param("classId") Long classId, @Param("courseId") Long courseId);
 } 

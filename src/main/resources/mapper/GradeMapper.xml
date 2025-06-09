@@ -87,9 +87,9 @@
         LEFT JOIN students s ON g.student_id = s.id
         LEFT JOIN courses c ON g.course_id = c.id
         LEFT JOIN classes cl ON s.class_id = cl.id
-        LEFT JOIN teacher_course tc ON (g.course_id = tc.course_id AND cl.id = tc.class_id)
+        LEFT JOIN teaching_assignments ta ON (g.course_id = ta.course_id AND cl.id = ta.class_id)
         <where>
-            tc.teacher_id = #{teacherId}
+            ta.teacher_id = #{teacherId}
             <if test="courseId != null">
                 AND g.course_id = #{courseId}
             </if>

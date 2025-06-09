@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ljp.xjt.dto.TeacherClassDto;
+import com.ljp.xjt.dto.TeacherCourseDto;
+import com.ljp.xjt.dto.TeacherGradeDto;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.mapper.TeacherMapper;
 import com.ljp.xjt.service.TeacherService;
@@ -141,5 +144,43 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
         wrapper.select(Teacher::getId, Teacher::getTeacherName, Teacher::getTeacherNumber);
         wrapper.orderByAsc(Teacher::getTeacherNumber);
         return this.list(wrapper);
+    }
+
+    /**
+     * 根据用户ID查询该教师所教授的课程列表
+     *
+     * @param userId 用户ID
+     * @return 教师课程列表
+     */
+    @Override
+    public List<TeacherCourseDto> findCoursesByUserId(Long userId) {
+        log.info("Finding courses for user id: {}", userId);
+        return this.baseMapper.findCoursesByUserId(userId);
+    }
+
+    /**
+     * 根据用户ID和课程ID，查询该教师在该课程下所教授的班级列表
+     *
+     * @param userId 用户ID
+     * @param courseId 课程ID
+     * @return 教师班级列表
+     */
+    @Override
+    public List<TeacherClassDto> findClassesByCourseId(Long userId, Long courseId) {
+        log.info("Finding classes for user id: {} and course id: {}", userId, courseId);
+        return this.baseMapper.findClassesByCourseId(userId, courseId);
+    }
+
+    /**
+     * 根据班级ID和课程ID，查询学生成绩列表
+     *
+     * @param classId 班级ID
+     * @param courseId 课程ID
+     * @return 学生成绩列表
+     */
+    @Override
+    public List<TeacherGradeDto> findGradesByClassAndCourse(Long classId, Long courseId) {
+        log.info("Finding grades for class id: {} and course id: {}", classId, courseId);
+        return this.baseMapper.findGradesByClassAndCourse(classId, courseId);
     }
 } 

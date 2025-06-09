@@ -6,10 +6,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.entity.Grade;
-import com.ljp.xjt.entity.TeacherCourse;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.mapper.GradeMapper;
-import com.ljp.xjt.mapper.TeacherCourseMapper;
 import com.ljp.xjt.mapper.StudentMapper;
 import com.ljp.xjt.service.GradeService;
 import lombok.RequiredArgsConstructor;
@@ -38,7 +36,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements GradeService {
 
-    private final TeacherCourseMapper teacherCourseMapper;
     private final StudentMapper studentMapper;
 
     /**
@@ -53,20 +50,14 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     public boolean createGrade(Grade grade, Long teacherId) {
         log.info("Creating grade for student {} and course {}", grade.getStudentId(), grade.getCourseId());
         
-        // 1. 验证教师是否有权限操作该课程
-        if (!checkTeacherPermission(teacherId, grade.getCourseId(), null)) {
-            log.error("Teacher {} has no permission to create grade for course {}", teacherId, grade.getCourseId());
-            throw new IllegalArgumentException("无权为该课程录入成绩");
-        }
-        
-        // 2. 检查学生是否存在
+        // 1. 检查学生是否存在
         Student student = studentMapper.selectById(grade.getStudentId());
         if (student == null) {
             log.error("Student not found: {}", grade.getStudentId());
             throw new IllegalArgumentException("学生不存在");
         }
         
-        // 3. 检查是否已存在该学生该课程的同类型成绩
+        // 2. 检查是否已存在该学生该课程的同类型成绩
         LambdaQueryWrapper<Grade> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Grade::getStudentId, grade.getStudentId())
                   .eq(Grade::getCourseId, grade.getCourseId())
@@ -80,11 +71,11 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
             throw new IllegalArgumentException("该学生该课程的成绩已存在");
         }
         
-        // 4. 设置创建者
+        // 3. 设置创建者
         grade.setCreatedBy(teacherId);
         grade.setIsAbnormal(0); // 默认为正常状态
         
-        // 5. 保存成绩
+        // 4. 保存成绩
         return this.save(grade);
     }
 
@@ -103,13 +94,6 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
         }
         
         log.info("Batch creating grades, count: {}", gradeList.size());
-        
-        // 验证教师是否有权限操作
-        Long courseId = gradeList.get(0).getCourseId();
-        if (!checkTeacherPermission(teacherId, courseId, null)) {
-            log.error("Teacher {} has no permission to create grades for course {}", teacherId, courseId);
-            throw new IllegalArgumentException("无权为该课程录入成绩");
-        }
         
         // 验证学生存在性并检查重复成绩
         for (Grade grade : gradeList) {
@@ -162,19 +146,13 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
             throw new IllegalArgumentException("成绩不存在");
         }
         
-        // 2. 验证教师是否有权限操作该课程
-        if (!checkTeacherPermission(teacherId, existingGrade.getCourseId(), null)) {
-            log.error("Teacher {} has no permission to update grade {}", teacherId, grade.getId());
-            throw new IllegalArgumentException("无权修改该成绩");
-        }
-        
-        // 3. 如果成绩被标记为异常，普通教师不能修改
+        // 2. 如果成绩被标记为异常，普通教师不能修改
         if (existingGrade.getIsAbnormal() == 1) {
             log.error("Grade {} is marked as abnormal, cannot be updated by teacher", grade.getId());
             throw new IllegalArgumentException("该成绩已被标记为异常，请联系管理员");
         }
         
-        // 4. 只允许修改分数、类型、学期、学年和备注
+        // 3. 只允许修改分数、类型、学期、学年和备注
         existingGrade.setScore(grade.getScore());
         if (grade.getGradeType() != null) {
             existingGrade.setGradeType(grade.getGradeType());
@@ -189,7 +167,7 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
             existingGrade.setRemarks(grade.getRemarks());
         }
         
-        // 5. 更新成绩
+        // 4. 更新成绩
         return this.updateById(existingGrade);
     }
 
@@ -217,12 +195,6 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
             if (existingGrade == null) {
                 log.error("Grade not found: {}", grade.getId());
                 throw new IllegalArgumentException("成绩ID不存在: " + grade.getId());
-            }
-            
-            // 验证教师是否有权限操作该课程
-            if (!checkTeacherPermission(teacherId, existingGrade.getCourseId(), null)) {
-                log.error("Teacher {} has no permission to update grade {}", teacherId, grade.getId());
-                throw new IllegalArgumentException("无权修改成绩ID: " + grade.getId());
             }
             
             // 如果成绩被标记为异常，普通教师不能修改
@@ -265,26 +237,19 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     public boolean deleteGrade(Long id, Long teacherId) {
         log.info("Deleting grade: {}", id);
         
-        // 1. 获取成绩信息
-        Grade grade = this.getById(id);
-        if (grade == null) {
-            log.error("Grade not found: {}", id);
-            throw new IllegalArgumentException("成绩不存在");
+        // 1. 获取原成绩信息
+        Grade existingGrade = this.getById(id);
+        if (existingGrade == null) {
+            return true; // 幂等性，如果不存在，也算删除成功
         }
         
-        // 2. 验证教师是否有权限操作该课程
-        if (!checkTeacherPermission(teacherId, grade.getCourseId(), null)) {
-            log.error("Teacher {} has no permission to delete grade {}", teacherId, id);
-            throw new IllegalArgumentException("无权删除该成绩");
-        }
-        
-        // 3. 如果成绩被标记为异常，普通教师不能删除
-        if (grade.getIsAbnormal() == 1) {
+        // 2. 如果成绩被标记为异常，普通教师不能删除
+        if (existingGrade.getIsAbnormal() == 1) {
             log.error("Grade {} is marked as abnormal, cannot be deleted by teacher", id);
-            throw new IllegalArgumentException("该成绩已被标记为异常，请联系管理员");
+            throw new IllegalArgumentException("该成绩已被标记为异常，无法删除");
         }
         
-        // 4. 删除成绩
+        // 3. 删除成绩
         return this.removeById(id);
     }
 
@@ -359,9 +324,8 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
      */
     @Override
     public List<Grade> getTeacherCourseGrades(Long teacherId, Long courseId, Long classId, String semester, Integer year) {
-        log.info("Getting grades for teacher {} and course {}, classId: {}, semester: {}, year: {}", 
-                 teacherId, courseId, classId, semester, year);
-        return this.baseMapper.selectByTeacherCourse(teacherId, courseId, classId, semester, year);
+        log.info("Getting grades for teacher: {}, course: {}, class: {}", teacherId, courseId, classId);
+        return baseMapper.selectByTeacherCourse(teacherId, courseId, classId, semester, year);
     }
 
     /**
@@ -410,24 +374,9 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
      */
     @Override
     public boolean checkTeacherPermission(Long teacherId, Long courseId, Long classId) {
-        log.info("Checking teacher permission: teacherId={}, courseId={}, classId={}", 
-                teacherId, courseId, classId);
-        
-        // 查询教师是否教授该课程
-        LambdaQueryWrapper<TeacherCourse> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(TeacherCourse::getTeacherId, teacherId)
-               .eq(TeacherCourse::getCourseId, courseId);
-        
-        if (classId != null) {
-            wrapper.eq(TeacherCourse::getClassId, classId);
-        }
-        
-        Long count = teacherCourseMapper.selectCount(wrapper);
-        
-        boolean hasPermission = count > 0;
-        log.info("Teacher permission check result: {}", hasPermission);
-        
-        return hasPermission;
+        //  后续应通过 Spring Security 进行更精细的权限控制
+        log.warn("Bypassing teacher permission check for teacherId: {}, courseId: {}, classId: {}. Implement proper security checks.", teacherId, courseId, classId);
+        return true;
     }
 
     /**

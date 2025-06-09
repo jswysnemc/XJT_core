@@ -60,7 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 从数据库加载用户（确保用户状态等仍然有效）
                 UserDetails userDetails = userDetailsServiceImpl.loadUserByUsername(username);
                 
-                // 创建认证令牌
+                // 创建认证令牌, 注意第一个参数，它将被设置为SecurityContext的principal
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 

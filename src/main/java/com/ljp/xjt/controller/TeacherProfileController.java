@@ -4,11 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.Teacher;
-import com.ljp.xjt.entity.TeacherCourse;
 import com.ljp.xjt.entity.User;
-import com.ljp.xjt.service.CourseScheduleService;
 import com.ljp.xjt.service.StudentService;
-import com.ljp.xjt.service.TeacherCourseService;
 import com.ljp.xjt.service.TeacherService;
 import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,9 +43,7 @@ public class TeacherProfileController {
 
     private final TeacherService teacherService;
     private final UserService userService;
-    private final TeacherCourseService teacherCourseService;
     private final StudentService studentService;
-    private final CourseScheduleService courseScheduleService;
 
     /**
      * 获取当前登录教师的个人资料
@@ -141,66 +136,15 @@ public class TeacherProfileController {
         // 获取当前认证用户
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
-        
+
         log.info("Get teaching stats for teacher: {}", username);
-        
-        // 实现教学统计信息查询逻辑
+
+        // TODO: 重新实现教学统计信息查询逻辑
+        // 后续版本中将使用 teaching_assignment 表来重新实现此功能
         // 包括：教授班级数、教授课程数、学生数量等
-        
-        // 获取教师信息
-        User user = userService.findByUsername(username);
-        if (user == null) {
-            return ApiResponse.error(404, "用户不存在");
-        }
-        
-        Long userId = user.getId();
-        Teacher teacher = teacherService.getTeacherByUserId(userId);
-        if (teacher == null) {
-            return ApiResponse.notFound();
-        }
-        
-        Long teacherId = teacher.getId();
-        
-        // 查询该教师的课程安排
-        LambdaQueryWrapper<TeacherCourse> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(TeacherCourse::getTeacherId, teacherId);
-        List<TeacherCourse> teacherCourses = teacherCourseService.list(queryWrapper);
-        
-        // 统计数据
-        // 1. 教授的班级数 (不重复的班级)
-        Set<Long> classIds = teacherCourses.stream()
-            .map(TeacherCourse::getClassId)
-            .filter(id -> id != null)
-            .collect(Collectors.toSet());
-        int classCount = classIds.size();
-        
-        // 2. 教授的课程数 (不重复的课程)
-        Set<Long> courseIds = teacherCourses.stream()
-            .map(TeacherCourse::getCourseId)
-            .filter(id -> id != null)
-            .collect(Collectors.toSet());
-        int courseCount = courseIds.size();
-        
-        // 3. 涉及的学生总数 (属于这些班级的所有学生)
-        int studentCount = 0;
-        if (!classIds.isEmpty()) {
-            LambdaQueryWrapper<Student> studentQuery = new LambdaQueryWrapper<>();
-            studentQuery.in(Student::getClassId, classIds);
-            studentCount = (int) studentService.count(studentQuery);
-        }
-        
-        // 4. 课程安排总数
-        int scheduleCount = teacherCourses.size();
-        
-        // 组装统计数据
         Map<String, Object> stats = new HashMap<>();
-        stats.put("teacherId", teacherId);
-        stats.put("teacherName", teacher.getTeacherName());
-        stats.put("classCount", classCount);
-        stats.put("courseCount", courseCount);
-        stats.put("studentCount", studentCount);
-        stats.put("scheduleCount", scheduleCount);
-        
+        stats.put("message", "此功能正在开发中");
+
         return ApiResponse.success("查询成功", stats);
     }
 } 

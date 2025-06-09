@@ -39,4 +39,40 @@
         SELECT COUNT(*) FROM teachers WHERE teacher_number = #{teacherNumber}
     </select>
 
+    <!-- 根据用户ID查询该教师所教授的课程列表 -->
+    <select id="findCoursesByUserId" resultType="com.ljp.xjt.dto.TeacherCourseDto">
+        SELECT DISTINCT
+            c.id AS courseId,
+            c.course_name AS courseName,
+            c.credits
+        FROM courses c
+        JOIN teaching_assignments ta ON c.id = ta.course_id
+        JOIN teachers t ON ta.teacher_id = t.id
+        WHERE t.user_id = #{userId}
+    </select>
+
+    <!-- 根据用户ID和课程ID，查询该教师在该课程下所教授的班级列表 -->
+    <select id="findClassesByCourseId" resultType="com.ljp.xjt.dto.TeacherClassDto">
+        SELECT DISTINCT
+            cl.id AS classId,
+            cl.class_name AS className
+        FROM classes cl
+        JOIN teaching_assignments ta ON cl.id = ta.class_id
+        JOIN teachers t ON ta.teacher_id = t.id
+        WHERE t.user_id = #{userId} AND ta.course_id = #{courseId}
+    </select>
+
+    <!-- 根据班级ID和课程ID，查询学生成绩列表 -->
+    <select id="findGradesByClassAndCourse" resultType="com.ljp.xjt.dto.TeacherGradeDto">
+        SELECT
+            s.id AS studentId,
+            s.student_name AS studentName,
+            g.score,
+            g.id AS gradeId
+        FROM grades g
+        JOIN students s ON g.student_id = s.id
+        WHERE g.course_id = #{courseId}
+          AND s.class_id = #{classId}
+    </select>
+
 </mapper> 
