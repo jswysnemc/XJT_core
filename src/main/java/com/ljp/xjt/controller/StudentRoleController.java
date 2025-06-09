@@ -3,6 +3,7 @@ package com.ljp.xjt.controller;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.dto.StudentProfileDTO;
+import com.ljp.xjt.dto.StudentProfileUpdateDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.security.SecurityUser;
@@ -10,11 +11,14 @@ import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -80,6 +84,22 @@ public class StudentRoleController {
         return ApiResponse.error(404, "未找到当前用户的学生信息");
     }
 
+    /**
+     * [学生] 更新当前登录学生的个人信息
+     *
+     * @param updateDTO 包含待更新信息的DTO
+     * @return ApiResponse<Void>
+     */
+    @PutMapping("/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "更新我的个人信息", description = "更新当前登录学生的部分个人信息，如邮箱、电话、姓名、性别。需要学生权限。")
+    public ApiResponse<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO updateDTO) {
+        boolean success = studentService.updateMyProfile(updateDTO);
+        if (success) {
+            return ApiResponse.success("个人信息更新成功");
+        }
+        return ApiResponse.error(500, "个人信息更新失败");
+    }
 
     /**
      * 查询当前登录学生的所有成绩

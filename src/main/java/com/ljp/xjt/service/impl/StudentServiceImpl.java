@@ -3,12 +3,17 @@ package com.ljp.xjt.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.dto.StudentGradeDTO;
+import com.ljp.xjt.dto.StudentProfileUpdateDTO;
 import com.ljp.xjt.entity.Student;
+import com.ljp.xjt.entity.User;
 import com.ljp.xjt.mapper.StudentMapper;
 import com.ljp.xjt.security.SecurityUser;
 import com.ljp.xjt.service.StudentService;
+import com.ljp.xjt.service.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
@@ -26,7 +31,10 @@ import java.util.List;
  * @since 2025-05-29
  */
 @Service
+@RequiredArgsConstructor
 public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> implements StudentService {
+
+    private final UserService userService;
 
     /**
      * 检查学号是否已存在。
@@ -125,5 +133,44 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
         // 4. 如果用户未登录或不是学生，返回空列表
         return Collections.emptyList();
+    }
+
+    /**
+     * 更新当前登录学生的个人信息
+     * <p>
+     * 1. 获取当前登录用户及关联的学生信息。
+     * 2. 使用DTO中的数据更新User和Student实体。
+     * 3. 在一个事务中同时更新users表和students表。
+     * </p>
+     *
+     * @param updateDTO 包含待更新信息的DTO
+     * @return boolean 更新是否成功
+     */
+    @Override
+    @Transactional
+    public boolean updateMyProfile(StudentProfileUpdateDTO updateDTO) {
+        // 1. 获取当前登录用户信息
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof SecurityUser securityUser)) {
+            throw new RuntimeException("无法获取当前用户信息");
+        }
+        User currentUser = securityUser.getUser();
+        Student currentStudent = findByUserId(currentUser.getId());
+
+        if (currentStudent == null) {
+            throw new RuntimeException("未找到当前用户的学生记录");
+        }
+
+        // 2. 更新User实体
+        currentUser.setEmail(updateDTO.getEmail());
+        currentUser.setPhone(updateDTO.getPhone());
+        boolean userUpdated = userService.updateById(currentUser);
+
+        // 3. 更新Student实体
+        currentStudent.setStudentName(updateDTO.getStudentName());
+        currentStudent.setGender(updateDTO.getGender());
+        boolean studentUpdated = this.updateById(currentStudent);
+
+        return userUpdated && studentUpdated;
     }
 } 
