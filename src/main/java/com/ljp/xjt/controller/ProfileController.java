@@ -114,7 +114,7 @@ public class ProfileController {
      * @return 头像资源
      */
     @GetMapping("/avatar/{fileName:.+}")
-    public ResponseEntity<Resource> getAvatar(@PathVariable String fileName, HttpServletRequest request) {
+    public ResponseEntity<Resource> getAvatar(@PathVariable("fileName") String fileName, HttpServletRequest request) {
         Resource resource = fileService.loadFileAsResource(fileName);
 
         String contentType = null;

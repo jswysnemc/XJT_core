@@ -36,7 +36,7 @@ import java.util.List;
  * @since 2025-05-29
  */
 @RestController
-@RequestMapping("/api/students")
+@RequestMapping("/students")
 @Tag(name = "学生管理", description = "提供学生信息的查询、管理接口")
 public class StudentController {
 

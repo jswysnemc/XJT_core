@@ -34,7 +34,7 @@ import java.util.List;
  * @since 2025-05-29
  */
 @RestController
-@RequestMapping("/api/admin/courses")
+@RequestMapping("/admin/courses")
 @Tag(name = "课程管理", description = "提供课程信息的增删改查接口")
 @PreAuthorize("hasRole('ADMIN')")
 public class CourseController {

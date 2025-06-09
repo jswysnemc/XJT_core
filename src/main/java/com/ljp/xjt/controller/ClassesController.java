@@ -34,7 +34,7 @@ import java.util.List;
  * @since 2025-05-29
  */
 @RestController
-@RequestMapping("/api/admin/classes")
+@RequestMapping("/admin/classes")
 @Tag(name = "班级管理", description = "提供班级信息的增删改查接口")
 @PreAuthorize("hasRole('ADMIN')")
 public class ClassesController {

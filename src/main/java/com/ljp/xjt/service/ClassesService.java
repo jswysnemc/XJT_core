@@ -1,6 +1,10 @@
 package com.ljp.xjt.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ljp.xjt.dto.ClassDto;
 import com.ljp.xjt.entity.Classes;
 
 /**
@@ -33,6 +37,15 @@ public interface ClassesService extends IService<Classes> {
      * @return boolean 如果存在则返回true，否则返回false
      */
     boolean checkClassCodeExists(String classCode, Long classId);
+
+    /**
+     * 分页查询班级列表（包含专业信息）
+     *
+     * @param page      分页对象
+     * @param wrapper   查询条件
+     * @return 分页的班级DTO列表
+     */
+    Page<ClassDto> selectPageWithMajor(Page<Classes> page, LambdaQueryWrapper<Classes> wrapper);
 
     // 未来可以添加更多业务方法，例如：
     // Page<ClassesDTO> findClassesWithDetails(Page<Classes> page, ClassesQueryParam queryParam);
