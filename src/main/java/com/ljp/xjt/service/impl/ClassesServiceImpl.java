@@ -1,12 +1,22 @@
 package com.ljp.xjt.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ljp.xjt.dto.ClassDto;
 import com.ljp.xjt.entity.Classes;
+import com.ljp.xjt.entity.Major;
 import com.ljp.xjt.mapper.ClassesMapper;
+import com.ljp.xjt.mapper.MajorMapper;
 import com.ljp.xjt.service.ClassesService;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 班级服务实现类
@@ -21,6 +31,9 @@ import org.springframework.util.StringUtils;
  */
 @Service
 public class ClassesServiceImpl extends ServiceImpl<ClassesMapper, Classes> implements ClassesService {
+
+    @Autowired
+    private MajorMapper majorMapper;
 
     /**
      * 检查班级名称是否已存在。
@@ -62,5 +75,48 @@ public class ClassesServiceImpl extends ServiceImpl<ClassesMapper, Classes> impl
             queryWrapper.ne(Classes::getId, classId);
         }
         return baseMapper.exists(queryWrapper);
+    }
+
+    @Override
+    public Page<ClassDto> selectPageWithMajor(Page<Classes> page, LambdaQueryWrapper<Classes> wrapper) {
+        // 1. 执行分页查询，获取基础的班级信息
+        Page<Classes> classesPage = baseMapper.selectPage(page, wrapper);
+
+        // 2. 如果查询结果为空，直接返回一个空的DTO分页对象
+        if (classesPage.getRecords().isEmpty()) {
+            return new Page<ClassDto>().setTotal(0);
+        }
+
+        // 3. 提取所有班级记录中的 majorId
+        List<Long> majorIds = classesPage.getRecords().stream()
+                .map(Classes::getMajorId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 4. 根据 majorId 批量查询专业信息
+        Map<Long, String> majorIdToNameMap = majorMapper.selectBatchIds(majorIds).stream()
+                .collect(Collectors.toMap(Major::getId, Major::getMajorName));
+
+        // 5. 将 `Page<Classes>` 转换为 `Page<ClassDto>`，并填充 `majorName`
+        Page<ClassDto> dtoPage = new Page<>(classesPage.getCurrent(), classesPage.getSize(), classesPage.getTotal());
+        List<ClassDto> dtoList = classesPage.getRecords().stream().map(classes -> {
+            ClassDto dto = new ClassDto();
+            BeanUtils.copyProperties(classes, dto);
+            dto.setMajorName(majorIdToNameMap.get(classes.getMajorId()));
+            return dto;
+        }).collect(Collectors.toList());
+
+        dtoPage.setRecords(dtoList);
+
+        return dtoPage;
+    }
+
+    @Override
+    public Map<Long, String> getMajorIdToNameMap(List<Long> majorIds) {
+        if (majorIds == null || majorIds.isEmpty()) {
+            return Map.of();
+        }
+        return majorMapper.selectBatchIds(majorIds).stream()
+                .collect(Collectors.toMap(Major::getId, Major::getMajorName));
     }
 } 

@@ -7,6 +7,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ljp.xjt.dto.ClassDto;
 import com.ljp.xjt.entity.Classes;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 班级服务接口
  * <p>
@@ -46,6 +49,13 @@ public interface ClassesService extends IService<Classes> {
      * @return 分页的班级DTO列表
      */
     Page<ClassDto> selectPageWithMajor(Page<Classes> page, LambdaQueryWrapper<Classes> wrapper);
+
+    /**
+     * 根据专业ID列表获取 专业ID -> 专业名称 的映射
+     * @param majorIds 专业ID列表
+     * @return Map<Long, String>
+     */
+    Map<Long, String> getMajorIdToNameMap(List<Long> majorIds);
 
     // 未来可以添加更多业务方法，例如：
     // Page<ClassesDTO> findClassesWithDetails(Page<Classes> page, ClassesQueryParam queryParam);

@@ -3,6 +3,7 @@ package com.ljp.xjt.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.ClassDto;
 import com.ljp.xjt.entity.Classes;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.CourseSchedule;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.BeanUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 班级管理控制器
@@ -178,11 +182,11 @@ public class ClassesController {
      * @param className  班级名称 (可选查询条件)
      * @param classCode  班级编码 (可选查询条件)
      * @param gradeYear  年级 (可选查询条件)
-     * @return ApiResponse<Page<Classes>> 分页后的班级列表
+     * @return ApiResponse<Page<ClassDto>> 分页后的班级列表
      */
     @GetMapping
     @Operation(summary = "分页查询班级列表", description = "可根据班级名称、编码、年级进行筛选")
-    public ApiResponse<Page<Classes>> listClasses(
+    public ApiResponse<Page<ClassDto>> listClasses(
             @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
             @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
             @Parameter(description = "班级名称查询") @RequestParam(required = false) String className,
@@ -196,19 +200,36 @@ public class ClassesController {
                     .orderByDesc(Classes::getCreatedTime); // 默认按创建时间降序
 
         Page<Classes> page = new Page<>(pageNum, pageSize);
-        classesService.page(page, queryWrapper);
-        return ApiResponse.success(page);
+        Page<ClassDto> dtoPage = classesService.selectPageWithMajor(page, queryWrapper);
+        return ApiResponse.success(dtoPage);
     }
 
     /**
      * 获取所有班级列表 (不分页)
      *
-     * @return ApiResponse<List<Classes>> 所有班级列表
+     * @return ApiResponse<List<ClassDto>> 所有班级列表
      */
     @GetMapping("/all")
     @Operation(summary = "获取所有班级列表", description = "查询所有班级信息，不进行分页")
-    public ApiResponse<List<Classes>> listAllClasses() {
-        List<Classes> list = classesService.list(new LambdaQueryWrapper<Classes>().orderByAsc(Classes::getClassName));
-        return ApiResponse.success(list);
+    public ApiResponse<List<ClassDto>> listAllClasses() {
+        // 1. 获取所有班级
+        List<Classes> classesList = classesService.list(new LambdaQueryWrapper<Classes>().orderByAsc(Classes::getClassName));
+        if (classesList.isEmpty()) {
+            return ApiResponse.success(List.of());
+        }
+
+        // 2. 提取 majorId 并查询专业信息
+        List<Long> majorIds = classesList.stream().map(Classes::getMajorId).distinct().collect(Collectors.toList());
+        Map<Long, String> majorIdToNameMap = classesService.getMajorIdToNameMap(majorIds);
+
+        // 3. 转换为 DTO 列表
+        List<ClassDto> dtoList = classesList.stream().map(classes -> {
+            ClassDto dto = new ClassDto();
+            BeanUtils.copyProperties(classes, dto);
+            dto.setMajorName(majorIdToNameMap.get(classes.getMajorId()));
+            return dto;
+        }).collect(Collectors.toList());
+        
+        return ApiResponse.success(dtoList);
     }
 } 
