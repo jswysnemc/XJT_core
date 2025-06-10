@@ -5,9 +5,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.dto.AssignStudentsDTO;
 import com.ljp.xjt.dto.ClassDto;
+import com.ljp.xjt.dto.RemoveStudentsDTO;
+import com.ljp.xjt.dto.StudentDTO;
 import com.ljp.xjt.entity.Classes;
-import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.CourseSchedule;
+import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.service.ClassesService;
 import com.ljp.xjt.service.MajorService;
 import com.ljp.xjt.service.StudentService;
@@ -17,13 +19,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -55,7 +57,7 @@ public class ClassesController {
     private final TeacherService teacherService;
 
     @Autowired
-    public ClassesController(ClassesService classesService, 
+    public ClassesController(ClassesService classesService,
                            StudentService studentService,
                            CourseScheduleService courseScheduleService,
                            MajorService majorService,
@@ -126,6 +128,26 @@ public class ClassesController {
         log.info("Successfully assigned {} students to class {}", assignedCount, classId);
 
         return ApiResponse.success("成功为班级添加 " + assignedCount + " 名学生");
+    }
+
+    /**
+     * 获取指定班级下的所有学生
+     *
+     * @param classId 班级ID
+     * @return ApiResponse<List<StudentDTO>> 学生列表
+     */
+    @GetMapping("/{classId}/students")
+    @Operation(summary = "获取指定班级的所有学生", description = "根据班级ID查询其包含的所有学生列表。")
+    public ApiResponse<List<StudentDTO>> getStudentsByClass(@Parameter(description = "班级ID") @PathVariable Long classId) {
+        // 1. 检查班级是否存在，确保请求的资源是有效的
+        Classes targetClass = classesService.getById(classId);
+        if (targetClass == null) {
+            return ApiResponse.error(404, "指定的班级不存在");
+        }
+
+        // 2. 调用服务查询学生列表
+        List<StudentDTO> students = studentService.findStudentsByClassId(classId);
+        return ApiResponse.success(students);
     }
 
     /**
@@ -277,5 +299,31 @@ public class ClassesController {
         }).collect(Collectors.toList());
         
         return ApiResponse.success(dtoList);
+    }
+
+    /**
+     * 从班级中批量移除学生
+     *
+     * @param classId           班级ID
+     * @param removeStudentsDTO 包含学生ID列表的DTO
+     * @return ApiResponse 包含操作结果
+     */
+    @DeleteMapping("/{classId}/students")
+    @Operation(summary = "从班级中批量移除学生", description = "将一批学生从指定班级中移除，使其变为未分配状态。")
+    public ApiResponse<Void> removeStudentsFromClass(
+            @Parameter(description = "班级ID") @PathVariable Long classId,
+            @Valid @RequestBody RemoveStudentsDTO removeStudentsDTO) {
+
+        // 1. 检查班级是否存在，确保操作的目标资源有效
+        Classes targetClass = classesService.getById(classId);
+        if (targetClass == null) {
+            return ApiResponse.error(404, "指定的班级不存在");
+        }
+
+        // 2. 调用服务层处理业务逻辑
+        int removedCount = studentService.removeStudentsFromClass(classId, removeStudentsDTO.getStudentIds());
+        log.info("Successfully removed {} students from class {}", removedCount, classId);
+
+        return ApiResponse.success("成功从班级移除 " + removedCount + " 名学生");
     }
 } 

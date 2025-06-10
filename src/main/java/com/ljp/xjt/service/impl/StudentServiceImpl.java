@@ -290,4 +290,69 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
         return studentsToUpdate.size();
     }
+
+    @Override
+    public List<StudentDTO> findStudentsByClassId(Long classId) {
+        // 1. 根据班级ID查询学生列表
+        List<Student> students = this.list(
+                new LambdaQueryWrapper<Student>().eq(Student::getClassId, classId)
+        );
+
+        if (students.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 转换为 DTO
+        return students.stream().map(student -> {
+            StudentDTO dto = new StudentDTO();
+            BeanUtils.copyProperties(student, dto);
+            // 班级名称在此场景下是已知的，但为保持DTO结构一致性，此处不单独设置
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    @Override
+    public int removeStudentsFromClass(Long classId, List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return 0;
+        }
+
+        // 1. 批量查询所有待移除的学生
+        List<Student> studentsToUpdate = this.listByIds(studentIds);
+
+        // 2. 校验学生ID的有效性
+        if (studentsToUpdate.size() != studentIds.size()) {
+            List<Long> foundIds = studentsToUpdate.stream().map(Student::getId).collect(Collectors.toList());
+            List<Long> notFoundIds = studentIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
+            throw new BusinessException("操作失败，以下学生ID不存在: " + notFoundIds);
+        }
+
+        // 3. 检查这些学生是否都属于目标班级
+        List<String> wrongClassStudents = studentsToUpdate.stream()
+                .filter(student -> !classId.equals(student.getClassId()))
+                .map(student -> {
+                    String studentDesc = student.getStudentName() + "(" + student.getStudentNumber() + ")";
+                    if (student.getClassId() == null) {
+                        return studentDesc + " 未分配班级";
+                    } else {
+                        return studentDesc + " 属于其他班级";
+                    }
+                })
+                .collect(Collectors.toList());
+
+        if (!wrongClassStudents.isEmpty()) {
+            throw new BusinessException("操作失败，以下学生不属于该班级: " + String.join(", ", wrongClassStudents));
+        }
+
+        // 4. 将学生的班级ID设置为null
+        for (Student student : studentsToUpdate) {
+            student.setClassId(null);
+        }
+
+        // 5. 批量更新
+        this.updateBatchById(studentsToUpdate);
+
+        return studentsToUpdate.size();
+    }
 }
