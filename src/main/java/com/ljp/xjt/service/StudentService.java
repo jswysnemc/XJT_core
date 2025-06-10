@@ -160,6 +160,14 @@ public interface StudentService extends IService<Student> {
 
     int removeStudentsFromClass(Long classId, List<Long> studentIds);
 
+    /**
+     * 根据学号查询学生信息
+     *
+     * @param studentNumber 学号
+     * @return Student 学生信息，如果不存在则返回null
+     */
+    Student findByStudentNumber(String studentNumber);
+
     // 未来可以添加更多业务方法，例如：
     // Page<StudentDTO> findStudentsWithDetails(Page<Student> page, StudentQueryParam queryParam);
 } 

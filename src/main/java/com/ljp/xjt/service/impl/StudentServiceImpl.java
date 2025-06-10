@@ -355,4 +355,12 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
         return studentsToUpdate.size();
     }
+
+    @Override
+    public Student findByStudentNumber(String studentNumber) {
+        if (!StringUtils.hasText(studentNumber)) {
+            return null;
+        }
+        return this.getOne(new LambdaQueryWrapper<Student>().eq(Student::getStudentNumber, studentNumber));
+    }
 }

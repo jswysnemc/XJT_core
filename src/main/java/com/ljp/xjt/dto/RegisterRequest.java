@@ -51,4 +51,7 @@ public class RegisterRequest {
     @Schema(description = "注册角色类型：STUDENT-学生, TEACHER-教师", example = "STUDENT", 
             allowableValues = {"STUDENT", "TEACHER"})
     private String roleType;
+
+    @Schema(description = "学号 (当角色为STUDENT时必填)", example = "2025010101")
+    private String studentNumber;
 } 

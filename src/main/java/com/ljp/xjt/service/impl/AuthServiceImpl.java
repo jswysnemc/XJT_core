@@ -5,6 +5,7 @@ import com.ljp.xjt.entity.Role;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.service.AuthService;
 import com.ljp.xjt.service.RoleService;
+import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.UserRoleService;
 import com.ljp.xjt.service.UserService;
 import com.ljp.xjt.utils.JwtUtils;
@@ -45,6 +46,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final UserDetailsServiceImpl userDetailsService;
+    private final StudentService studentService;
 
     /**
      * 用户登录
@@ -94,43 +96,67 @@ public class AuthServiceImpl implements AuthService {
      *
      * @param user 用户信息
      * @param roleCode 角色编码
+     * @param studentNumber 学号
      * @return 注册结果
      */
     @Override
     @Transactional
-    public RegisterResult register(User user, String roleCode) {
+    public RegisterResult register(User user, String roleCode, String studentNumber) {
         try {
             // 1. 验证用户信息
             if (user == null || !StringUtils.hasText(user.getUsername()) || !StringUtils.hasText(user.getPassword())) {
                 return new RegisterResult(false, "用户名和密码不能为空");
             }
             
-            // 2. 检查用户名是否已存在
+            // 2. 根据角色类型进行特定校验
+            if ("STUDENT".equalsIgnoreCase(roleCode)) {
+                if (!StringUtils.hasText(studentNumber)) {
+                    return new RegisterResult(false, "学生注册必须提供学号");
+                }
+                
+                com.ljp.xjt.entity.Student student = studentService.findByStudentNumber(studentNumber);
+                if (student == null) {
+                    return new RegisterResult(false, "学号不存在");
+                }
+                
+                if (student.getUserId() != null) {
+                    return new RegisterResult(false, "该学号已被其他用户绑定");
+                }
+            }
+            
+            // 3. 检查用户名是否已存在
             if (userService.isUsernameExists(user.getUsername())) {
                 return new RegisterResult(false, "用户名已存在");
             }
             
-            // 3. 检查邮箱是否已存在
+            // 4. 检查邮箱是否已存在
             if (StringUtils.hasText(user.getEmail()) && userService.isEmailExists(user.getEmail())) {
                 return new RegisterResult(false, "邮箱已存在");
             }
             
-            // 4. 检查手机号是否已存在
+            // 5. 检查手机号是否已存在
             if (StringUtils.hasText(user.getPhone()) && userService.isPhoneExists(user.getPhone())) {
                 return new RegisterResult(false, "手机号已存在");
             }
             
-            // 5. 设置用户默认状态和密码加密
+            // 6. 设置用户默认状态和密码加密
             user.setStatus(1); // 1表示启用
             user.setPassword(passwordEncoder.encode(user.getPassword()));
             
-            // 6. 保存用户信息
+            // 7. 保存用户信息
             boolean saved = userService.save(user);
             if (!saved) {
                 return new RegisterResult(false, "注册失败");
             }
             
-            // 7. 分配角色（如果指定了角色编码）
+            // 8. 绑定学生用户
+            if ("STUDENT".equalsIgnoreCase(roleCode)) {
+                com.ljp.xjt.entity.Student student = studentService.findByStudentNumber(studentNumber);
+                student.setUserId(user.getId());
+                studentService.updateById(student);
+            }
+            
+            // 9. 分配角色（如果指定了角色编码）
             if (StringUtils.hasText(roleCode)) {
                 boolean roleAssigned = userRoleService.assignRoleByCode(user.getId(), roleCode);
                 if (!roleAssigned) {
@@ -143,7 +169,8 @@ public class AuthServiceImpl implements AuthService {
             return new RegisterResult(true, "注册成功", user.getId());
         } catch (Exception e) {
             log.error("Registration error", e);
-            return new RegisterResult(false, "注册失败：" + e.getMessage());
+            // 手动回滚事务
+            throw new BusinessException("注册失败：" + e.getMessage());
         }
     }
 

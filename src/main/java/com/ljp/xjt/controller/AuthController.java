@@ -180,7 +180,11 @@ public class AuthController {
         user.setStatus(1); // 默认启用
         
         // 3. 调用认证服务进行注册
-        AuthService.RegisterResult registerResult = authService.register(user, registerRequest.getRoleType());
+        AuthService.RegisterResult registerResult = authService.register(
+            user, 
+            registerRequest.getRoleType(), 
+            registerRequest.getStudentNumber()
+        );
         
         if (!registerResult.isSuccess()) {
             return ApiResponse.error(registerResult.getMessage());

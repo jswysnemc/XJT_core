@@ -28,9 +28,10 @@ public interface AuthService {
      *
      * @param user 用户信息
      * @param roleCode 角色编码
+     * @param studentNumber 学号（当角色为学生时需要）
      * @return 注册结果
      */
-    RegisterResult register(User user, String roleCode);
+    RegisterResult register(User user, String roleCode, String studentNumber);
 
     /**
      * 刷新令牌
