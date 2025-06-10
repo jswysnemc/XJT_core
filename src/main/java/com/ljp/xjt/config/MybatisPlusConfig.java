@@ -1,6 +1,8 @@
 package com.ljp.xjt.config;
 
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.apache.ibatis.reflection.MetaObject;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +24,19 @@ import java.time.LocalDateTime;
 @Configuration
 @MapperScan("com.ljp.xjt.mapper")
 public class MybatisPlusConfig {
+
+    /**
+     * 配置MyBatis Plus的分页插件
+     *
+     * @return MybatisPlusInterceptor
+     */
+    @Bean
+    public MybatisPlusInterceptor mybatisPlusInterceptor() {
+        MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
+        // 添加分页内部拦截器
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
+        return interceptor;
+    }
 
     /**
      * 自动填充功能配置

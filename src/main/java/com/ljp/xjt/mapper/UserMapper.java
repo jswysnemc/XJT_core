@@ -72,10 +72,10 @@ public interface UserMapper extends BaseMapper<User> {
     @Select("""
             SELECT u.id, u.username
             FROM users u
-            JOIN user_roles ur ON u.id = ur.user_id
-            JOIN roles r ON ur.role_id = r.id
-            WHERE r.role_code = 'STUDENT'
-            AND u.id NOT IN (SELECT s.user_id FROM students s WHERE s.user_id IS NOT NULL)
+            INNER JOIN user_roles ur ON u.id = ur.user_id
+            INNER JOIN roles r ON ur.role_id = r.id
+            LEFT JOIN students s ON u.id = s.user_id
+            WHERE r.role_code = 'STUDENT' AND s.id IS NULL
             """)
     List<UnboundUserDTO> findUnboundStudentUsers();
 
