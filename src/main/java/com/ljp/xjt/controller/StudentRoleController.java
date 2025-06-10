@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,6 +41,7 @@ import java.util.List;
 @RequestMapping("/student")
 @RequiredArgsConstructor
 @Tag(name = "学生端 - 个人业务接口")
+@Slf4j
 public class StudentRoleController {
 
     private final StudentService studentService;
@@ -95,11 +97,17 @@ public class StudentRoleController {
     @PreAuthorize("hasRole('STUDENT')")
     @Operation(summary = "更新我的个人信息", description = "更新当前登录学生的部分个人信息，如邮箱、电话、姓名、性别。需要学生权限。")
     public ApiResponse<Void> updateMyProfile(@Valid @RequestBody StudentProfileUpdateDTO updateDTO) {
-        boolean success = studentService.updateMyProfile(updateDTO);
-        if (success) {
-            return ApiResponse.success("个人信息更新成功");
+        try {
+            boolean success = studentService.updateMyProfile(updateDTO);
+            if (success) {
+                return ApiResponse.success("个人信息更新成功");
+            }
+            // 通常, 如果 success 为 false, 应该有一个更具体的原因, 但当前实现总是返回 true 或抛出异常
+            return ApiResponse.error(500, "个人信息更新失败，但未报告具体异常。");
+        } catch (Exception e) {
+            log.error("更新学生个人信息时发生异常", e);
+            return ApiResponse.error(500, "个人信息更新失败: " + e.getMessage());
         }
-        return ApiResponse.error(500, "个人信息更新失败");
     }
 
     /**

@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import com.ljp.xjt.common.exception.BusinessException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -267,23 +268,22 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateTeacherProfile(Long userId, TeacherProfileUpdateRequestDto updateDto) {
-        boolean teacherUpdated = false;
-        boolean userUpdated = false;
-
         // 1. 根据userId找到教师实体
         Teacher teacher = this.getTeacherByUserId(userId);
         if (teacher == null) {
             log.warn("Attempted to update profile for a non-existent teacher with user ID: {}", userId);
-            return false;
+            throw new BusinessException("教师信息不存在");
         }
 
+        boolean needsTeacherUpdate = false;
         // 2. 更新教师表(teachers)中的信息
+        // 仅当用户传入了新的教师名，并且与旧的不同时，才进行更新
         if (StringUtils.hasText(updateDto.getTeacherName()) && !updateDto.getTeacherName().equals(teacher.getTeacherName())) {
             teacher.setTeacherName(updateDto.getTeacherName());
-            teacherUpdated = true;
+            needsTeacherUpdate = true;
         }
 
-        if (teacherUpdated) {
+        if (needsTeacherUpdate) {
             this.updateById(teacher);
         }
 
@@ -295,23 +295,25 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             throw new IllegalStateException("用户数据不存在，请联系管理员");
         }
 
-        if (StringUtils.hasText(updateDto.getEmail()) && !updateDto.getEmail().equals(user.getEmail())) {
+        boolean needsUserUpdate = false;
+        // 仅当用户传入了新的邮箱，并且与旧的不同时，才进行更新
+        if (updateDto.getEmail() != null && !updateDto.getEmail().equals(user.getEmail())) {
             // 在实际应用中，可能需要检查邮箱是否已被其他用户使用
             user.setEmail(updateDto.getEmail());
-            userUpdated = true;
+            needsUserUpdate = true;
         }
-
-        if (StringUtils.hasText(updateDto.getPhone()) && !updateDto.getPhone().equals(user.getPhone())) {
+        // 仅当用户传入了新的手机号，并且与旧的不同时，才进行更新
+        if (updateDto.getPhone() != null && !updateDto.getPhone().equals(user.getPhone())) {
             user.setPhone(updateDto.getPhone());
-            userUpdated = true;
+            needsUserUpdate = true;
         }
 
-        if (userUpdated) {
+        if (needsUserUpdate) {
             userService.updateById(user);
         }
 
-        // 只要有任何一部分更新了，就认为操作是成功的
-        return teacherUpdated || userUpdated;
+        // 即使没有字段被实际修改（例如，提交了完全相同的数据），操作本身也应被视为成功完成。
+        return true;
     }
 
     @Override
