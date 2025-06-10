@@ -3,6 +3,7 @@ package com.ljp.xjt.controller;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.UserDTO;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,11 +49,11 @@ public class UserController {
      * @param username 用户名（模糊查询）
      * @param email 邮箱（模糊查询）
      * @param status 状态
-     * @return 用户分页数据
+     * @return 包含角色信息的用户分页数据
      */
     @GetMapping
-    @Operation(summary = "分页查询用户列表", description = "管理员分页查询系统中的所有用户")
-    public ApiResponse<IPage<User>> getUserList(
+    @Operation(summary = "分页查询用户列表", description = "管理员分页查询系统中的所有用户，结果包含角色信息。")
+    public ApiResponse<IPage<UserDTO>> getUserList(
             @Parameter(description = "当前页码", example = "1")
             @RequestParam(defaultValue = "1") @Positive Long current,
             
@@ -71,16 +72,10 @@ public class UserController {
         log.info("Query user list - current: {}, size: {}, username: {}, email: {}, status: {}", 
                  current, size, username, email, status);
         
-        // 1. 创建分页对象
         Page<User> page = new Page<>(current, size);
+        IPage<UserDTO> userDtoPage = userService.getUserList(page, username, email, status);
         
-        // 2. 查询用户列表
-        IPage<User> userPage = userService.getUserList(page, username, email, status);
-        
-        // 3. 脱敏处理（移除密码字段）
-        userPage.getRecords().forEach(user -> user.setPassword(null));
-        
-        return ApiResponse.success("查询成功", userPage);
+        return ApiResponse.success("查询成功", userDtoPage);
     }
 
     /**

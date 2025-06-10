@@ -6,20 +6,28 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.common.exception.BusinessException;
 import com.ljp.xjt.dto.UnboundUserDTO;
+import com.ljp.xjt.dto.UserDTO;
+import com.ljp.xjt.entity.Role;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.entity.UserRole;
 import com.ljp.xjt.mapper.RoleMapper;
 import com.ljp.xjt.mapper.UserMapper;
+import com.ljp.xjt.mapper.UserRoleMapper;
 import com.ljp.xjt.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 用户服务实现类
@@ -38,6 +46,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
+    private final UserRoleMapper userRoleMapper;
     private final @Lazy PasswordEncoder passwordEncoder;
 
     @Override
@@ -129,19 +138,53 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(readOnly = true)
-    public IPage<User> getUserList(Page<User> page, String username, String email, Integer status) {
+    public IPage<UserDTO> getUserList(Page<User> page, String username, String email, Integer status) {
+        // 1. 构建查询条件
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
-        if (StringUtils.hasText(username)) {
-            queryWrapper.like(User::getUsername, username);
+        queryWrapper.like(StringUtils.hasText(username), User::getUsername, username)
+                    .like(StringUtils.hasText(email), User::getEmail, email)
+                    .eq(status != null, User::getStatus, status);
+
+        // 2. 分页查询基础用户数据
+        Page<User> userPage = baseMapper.selectPage(page, queryWrapper);
+        List<User> userRecords = userPage.getRecords();
+
+        if (CollectionUtils.isEmpty(userRecords)) {
+            return new Page<>();
         }
-        if (StringUtils.hasText(email)) {
-            queryWrapper.like(User::getEmail, email);
-        }
-        if (status != null) {
-            queryWrapper.eq(User::getStatus, status);
-        }
-        queryWrapper.orderByDesc(User::getCreatedTime);
-        return userMapper.selectPage(page, queryWrapper);
+
+        // 3. 获取用户ID列表
+        Set<Long> userIds = userRecords.stream().map(User::getId).collect(Collectors.toSet());
+
+        // 4. 一次性查询所有用户的角色关联关系
+        List<UserRole> userRoles = userRoleMapper.selectList(new LambdaQueryWrapper<UserRole>().in(UserRole::getUserId, userIds));
+        
+        // 5. 一次性查询所有涉及的角色信息
+        Set<Long> roleIds = userRoles.stream().map(UserRole::getRoleId).collect(Collectors.toSet());
+        Map<Long, Role> roleMap = CollectionUtils.isEmpty(roleIds) ? 
+                                  Map.of() :
+                                  roleMapper.selectBatchIds(roleIds).stream().collect(Collectors.toMap(Role::getId, r -> r));
+
+        // 6. 将角色分配给用户
+        Map<Long, Set<Role>> userIdToRolesMap = userRoles.stream()
+                .collect(Collectors.groupingBy(
+                        UserRole::getUserId,
+                        Collectors.mapping(ur -> roleMap.get(ur.getRoleId()), Collectors.toSet())
+                ));
+
+        // 7. 转换为DTO列表
+        List<UserDTO> dtoList = userRecords.stream().map(user -> {
+            UserDTO dto = new UserDTO();
+            BeanUtils.copyProperties(user, dto, "password"); // 复制属性，忽略密码
+            dto.setRoles(userIdToRolesMap.get(user.getId()));
+            return dto;
+        }).collect(Collectors.toList());
+
+        // 8. 创建并返回DTO分页结果
+        Page<UserDTO> dtoPage = new Page<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
+        dtoPage.setRecords(dtoList);
+
+        return dtoPage;
     }
 
     @Override

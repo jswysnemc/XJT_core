@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.dto.UnboundUserDTO;
+import com.ljp.xjt.dto.UserDTO;
 import com.ljp.xjt.entity.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -80,13 +81,13 @@ public interface UserService extends IService<User> {
     /**
      * 分页查询用户列表
      *
-     * @param page 分页参数
-     * @param username 用户名（模糊查询，可选）
-     * @param email 邮箱（模糊查询，可选）
-     * @param status 状态（可选）
-     * @return 用户分页数据
+     * @param page      分页对象
+     * @param username  用户名
+     * @param email     邮箱
+     * @param status    状态
+     * @return 包含角色信息的用户分页数据
      */
-    IPage<User> getUserList(Page<User> page, String username, String email, Integer status);
+    IPage<UserDTO> getUserList(Page<User> page, String username, String email, Integer status);
 
     /**
      * 验证用户名是否已存在

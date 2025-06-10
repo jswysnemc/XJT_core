@@ -4,8 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
-
 /**
  * 用户角色关联实体类
  * <p>
@@ -30,10 +28,4 @@ public class UserRole {
 
     @TableField("role_id")
     private Long roleId;                // 角色ID
-
-    @TableField(value = "created_time", fill = FieldFill.INSERT)
-    private LocalDateTime createdTime;  // 创建时间
-
-    @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedTime;  // 更新时间
 } 
