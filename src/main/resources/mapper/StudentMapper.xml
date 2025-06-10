@@ -90,4 +90,26 @@
             s.id = #{studentId}
     </select>
 
+    <select id="selectPageWithDetails" resultType="com.ljp.xjt.dto.StudentDTO">
+        SELECT
+            s.*,
+            c.class_name as className
+        FROM
+            students s
+        LEFT JOIN
+            classes c ON s.class_id = c.id
+        <where>
+            <if test="studentNumber != null and studentNumber != ''">
+                AND s.student_number LIKE CONCAT('%', #{studentNumber}, '%')
+            </if>
+            <if test="studentName != null and studentName != ''">
+                AND s.student_name LIKE CONCAT('%', #{studentName}, '%')
+            </if>
+            <if test="classId != null">
+                AND s.class_id = #{classId}
+            </if>
+        </where>
+        ORDER BY s.created_time DESC
+    </select>
+
 </mapper> 

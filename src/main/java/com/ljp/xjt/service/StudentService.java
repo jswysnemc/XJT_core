@@ -150,6 +150,12 @@ public interface StudentService extends IService<Student> {
      */
     List<StudentCourseDTO> findMyCourses();
 
+    IPage<StudentDTO> selectPageWithDetails(IPage<Student> page, String studentNumber, String studentName, Long classId);
+
+    List<StudentDTO> findUnassignedStudents();
+
+    int assignStudentsToClass(Long classId, List<Long> studentIds);
+
     // 未来可以添加更多业务方法，例如：
     // Page<StudentDTO> findStudentsWithDetails(Page<Student> page, StudentQueryParam queryParam);
 } 

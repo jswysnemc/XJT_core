@@ -7,6 +7,7 @@ import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.dto.StudentCourseDTO;
 import com.ljp.xjt.dto.StudentDetailDTO;
+import com.ljp.xjt.dto.StudentDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -185,6 +186,8 @@ public interface StudentMapper extends BaseMapper<Student> {
      * @return 学生详细信息DTO
      */
     StudentDetailDTO findStudentDetailById(@Param("studentId") Long studentId);
+
+    IPage<StudentDTO> selectPageWithDetails(IPage<Student> page, @Param("studentNumber") String studentNumber, @Param("studentName") String studentName, @Param("classId") Long classId);
 
     // 如果需要自定义SQL查询，可以在这里添加方法声明
     // 例如：根据学号查询学生信息

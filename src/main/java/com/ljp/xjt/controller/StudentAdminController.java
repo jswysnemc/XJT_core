@@ -227,4 +227,12 @@ public class StudentAdminController {
         IPage<StudentDTO> studentDTOPage = studentService.selectStudentPage(page, queryWrapper);
         return ApiResponse.success(studentDTOPage);
     }
+
+    @GetMapping("/unassigned")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "获取未分配班级的学生列表", description = "查询所有尚未分配到任何班级的学生。")
+    public ApiResponse<List<StudentDTO>> getUnassignedStudents() {
+        List<StudentDTO> unassignedStudents = studentService.findUnassignedStudents();
+        return ApiResponse.success(unassignedStudents);
+    }
 } 

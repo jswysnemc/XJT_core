@@ -154,28 +154,22 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
 
     @Override
     public boolean checkStudentNumberExists(String studentNumber, Long studentId) {
-        if (!StringUtils.hasText(studentNumber)) return false;
         LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Student::getStudentNumber, studentNumber);
         if (studentId != null) {
             queryWrapper.ne(Student::getId, studentId);
         }
-        return baseMapper.exists(queryWrapper);
+        return baseMapper.selectCount(queryWrapper) > 0;
     }
 
     @Override
     public Student findByUserId(Long userId) {
-        if (userId == null) return null;
-        return baseMapper.selectOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
+        return this.getOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
     }
 
     @Override
     public Student getStudentById(Long id) {
-        Student student = baseMapper.selectById(id);
-        if (student == null) {
-            throw new BusinessException("ID为 " + id + " 的学生不存在");
-        }
-        return student;
+        return baseMapper.selectById(id);
     }
 
     @Override
@@ -231,5 +225,69 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
             }
         }
         return Collections.emptyList();
+    }
+
+    @Override
+    public List<StudentDTO> findUnassignedStudents() {
+        // 1. 查询所有 class_id 为 null 的学生
+        List<Student> students = this.list(
+                new LambdaQueryWrapper<Student>().isNull(Student::getClassId)
+                        .orderByDesc(Student::getCreatedTime)
+        );
+
+        if (students.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // 2. 转换为 DTO
+        return students.stream().map(student -> {
+            StudentDTO dto = new StudentDTO();
+            BeanUtils.copyProperties(student, dto);
+            // 因为未分配班级，所以班级相关的 DTO 字段（className）将为 null，这是符合预期的
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public IPage<StudentDTO> selectPageWithDetails(IPage<Student> page, String studentNumber, String studentName, Long classId) {
+        return baseMapper.selectPageWithDetails(page, studentNumber, studentName, classId);
+    }
+
+    @Transactional
+    @Override
+    public int assignStudentsToClass(Long classId, List<Long> studentIds) {
+        if (studentIds == null || studentIds.isEmpty()) {
+            return 0;
+        }
+
+        // 1. 批量查询所有待分配的学生
+        List<Student> studentsToUpdate = this.listByIds(studentIds);
+
+        // 2. 校验学生ID的有效性
+        if (studentsToUpdate.size() != studentIds.size()) {
+            List<Long> foundIds = studentsToUpdate.stream().map(Student::getId).collect(Collectors.toList());
+            List<Long> notFoundIds = studentIds.stream().filter(id -> !foundIds.contains(id)).collect(Collectors.toList());
+            throw new BusinessException("操作失败，以下学生ID不存在: " + notFoundIds);
+        }
+
+        // 3. 检查学生是否已经分配了班级
+        List<String> alreadyAssignedStudents = studentsToUpdate.stream()
+                .filter(student -> student.getClassId() != null)
+                .map(student -> student.getStudentName() + "(" + student.getStudentNumber() + ")")
+                .collect(Collectors.toList());
+
+        if (!alreadyAssignedStudents.isEmpty()) {
+            throw new BusinessException("操作失败，以下学生已分配班级: " + String.join(", ", alreadyAssignedStudents));
+        }
+
+        // 4. 更新学生的班级ID
+        for (Student student : studentsToUpdate) {
+            student.setClassId(classId);
+        }
+
+        // 5. 批量更新
+        this.updateBatchById(studentsToUpdate);
+
+        return studentsToUpdate.size();
     }
 }

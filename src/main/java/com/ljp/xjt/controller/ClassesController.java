@@ -3,6 +3,7 @@ package com.ljp.xjt.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.AssignStudentsDTO;
 import com.ljp.xjt.dto.ClassDto;
 import com.ljp.xjt.entity.Classes;
 import com.ljp.xjt.entity.Student;
@@ -84,11 +85,11 @@ public class ClassesController {
         }
 
         // 2. 校验外键是否存在
-        if (majorService.getById(classes.getMajorId()) == null) {
-            return ApiResponse.error(400, "指定的专业ID不存在");
+        if (classes.getMajorId() == null || majorService.getById(classes.getMajorId()) == null) {
+            return ApiResponse.error(400, "指定的专业ID无效或不存在");
         }
-        if (teacherService.getById(classes.getAdvisorTeacherId()) == null) {
-            return ApiResponse.error(400, "指定的班主任教师ID不存在");
+        if (classes.getAdvisorTeacherId() == null || teacherService.getById(classes.getAdvisorTeacherId()) == null) {
+            return ApiResponse.error(400, "指定的班主任教师ID无效或不存在");
         }
 
         // 3. 确保ID由后端生成，防止客户端传入ID
@@ -99,6 +100,32 @@ public class ClassesController {
             return ApiResponse.created(classes);
         }
         return ApiResponse.error(500, "班级创建失败");
+    }
+
+    /**
+     * 为班级批量添加学生
+     *
+     * @param classId           班级ID
+     * @param assignStudentsDTO 包含学生ID列表的DTO
+     * @return ApiResponse 包含操作结果
+     */
+    @PostMapping("/{classId}/students")
+    @Operation(summary = "为班级批量添加学生", description = "将一批未分配班级的学生加入到指定班级。")
+    public ApiResponse<Void> addStudentsToClass(
+            @Parameter(description = "班级ID") @PathVariable Long classId,
+            @Valid @RequestBody AssignStudentsDTO assignStudentsDTO) {
+
+        // 1. 检查班级是否存在
+        Classes targetClass = classesService.getById(classId);
+        if (targetClass == null) {
+            return ApiResponse.error(404, "指定的班级不存在");
+        }
+
+        // 2. 调用服务层处理业务逻辑
+        int assignedCount = studentService.assignStudentsToClass(classId, assignStudentsDTO.getStudentIds());
+        log.info("Successfully assigned {} students to class {}", assignedCount, classId);
+
+        return ApiResponse.success("成功为班级添加 " + assignedCount + " 名学生");
     }
 
     /**
