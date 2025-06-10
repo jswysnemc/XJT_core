@@ -1,55 +1,160 @@
 package com.ljp.xjt.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.ljp.xjt.dto.StudentCourseDTO;
-import com.ljp.xjt.dto.StudentGradeDTO;
-import com.ljp.xjt.dto.StudentProfileUpdateDTO;
+import com.ljp.xjt.common.exception.BusinessException;
+import com.ljp.xjt.dto.*;
+import com.ljp.xjt.entity.Classes;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.mapper.ClassesMapper;
 import com.ljp.xjt.mapper.StudentMapper;
+import com.ljp.xjt.mapper.UserMapper;
 import com.ljp.xjt.security.SecurityUser;
 import com.ljp.xjt.service.StudentService;
-import com.ljp.xjt.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 学生服务实现类
- * <p>
- * 实现了 `StudentService` 接口中定义的学生管理业务逻辑。
- * 使用 `StudentMapper` 与数据库进行交互。
- * </p>
- *
- * @author ljp
- * @version 1.0
- * @since 2025-05-29
  */
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> implements StudentService {
 
-    private final UserService userService;
+    private final StudentMapper studentMapper;
+    private final UserMapper userMapper;
+    private final ClassesMapper classesMapper;
 
-    /**
-     * 检查学号是否已存在。
-     * 如果提供了 studentId，则在检查时排除该 ID 对应的学生（用于更新操作）。
-     *
-     * @param studentNumber 学号
-     * @param studentId     当前学生ID (可为null，用于创建时)
-     * @return boolean 如果学号已存在（排除自身后），则返回true，否则返回false
-     */
+    @Override
+    public IPage<Student> list(Page<Student> page, String studentName) {
+        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.like(StringUtils.hasText(studentName), Student::getStudentName, studentName);
+        return baseMapper.selectPage(page, queryWrapper);
+    }
+
+    @Override
+    public IPage<StudentDTO> selectStudentPage(Page<Student> page, LambdaQueryWrapper<Student> queryWrapper) {
+        // 1. 分页查询基础学生数据
+        Page<Student> studentPage = baseMapper.selectPage(page, queryWrapper);
+        List<Student> studentRecords = studentPage.getRecords();
+
+        if (CollectionUtils.isEmpty(studentRecords)) {
+            return new Page<>();
+        }
+
+        // 2. 获取班级ID列表
+        Set<Long> classIds = studentRecords.stream()
+                .map(Student::getClassId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 3. 一次性查询所有涉及的班级信息
+        Map<Long, String> classIdToNameMap = Collections.emptyMap();
+        if (!CollectionUtils.isEmpty(classIds)) {
+            List<Classes> classesList = classesMapper.selectBatchIds(classIds);
+            classIdToNameMap = classesList.stream()
+                    .collect(Collectors.toMap(Classes::getId, Classes::getClassName));
+        }
+
+        // 4. 转换为DTO列表
+        final Map<Long, String> finalClassIdToNameMap = classIdToNameMap;
+        List<StudentDTO> dtoList = studentRecords.stream().map(student -> {
+            StudentDTO dto = new StudentDTO();
+            BeanUtils.copyProperties(student, dto);
+            if (student.getClassId() != null) {
+                dto.setClassName(finalClassIdToNameMap.get(student.getClassId()));
+            }
+            return dto;
+        }).collect(Collectors.toList());
+
+        // 5. 创建并返回DTO分页结果
+        Page<StudentDTO> dtoPage = new Page<>(studentPage.getCurrent(), studentPage.getSize(), studentPage.getTotal());
+        dtoPage.setRecords(dtoList);
+
+        return dtoPage;
+    }
+
+    @Override
+    public boolean saveStudent(Student student) {
+        return save(student);
+    }
+
+    @Override
+    public boolean updateStudent(Student student) {
+        return updateById(student);
+    }
+
+    @Override
+    public StudentProfileDTO getStudentProfileByUserId(Long userId) {
+        Student student = findByUserId(userId);
+        if (student == null) {
+            throw new BusinessException("学生信息不存在");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户信息不存在");
+        }
+        StudentProfileDTO dto = new StudentProfileDTO();
+        BeanUtils.copyProperties(student, dto);
+        BeanUtils.copyProperties(user, dto);
+        dto.setId(student.getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public void updateStudentProfile(Long userId, StudentProfileUpdateDTO dto) {
+        Student student = findByUserId(userId);
+        if (student == null) {
+            throw new BusinessException("学生信息不存在");
+        }
+        student.setStudentName(dto.getStudentName());
+        student.setGender(dto.getGender());
+        updateById(student);
+
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户信息不存在");
+        }
+        user.setEmail(dto.getEmail());
+        user.setPhone(dto.getPhone());
+        userMapper.updateById(user);
+    }
+
+    @Override
+    public List<StudentCourseDTO> getStudentCourses(Long userId) {
+        Student student = findByUserId(userId);
+        return student != null ? studentMapper.findCoursesByStudentId(student.getId()) : Collections.emptyList();
+    }
+
+    @Override
+    public List<StudentGradeDTO> getStudentGrades(Long userId) {
+        Student student = findByUserId(userId);
+        return student != null ? studentMapper.findGradesByStudentId(student.getId()) : Collections.emptyList();
+    }
+
+    @Override
+    public StudentDetailDTO getStudentDetailById(Long studentId) {
+        return studentMapper.findStudentDetailById(studentId);
+    }
+
     @Override
     public boolean checkStudentNumberExists(String studentNumber, Long studentId) {
-        if (!StringUtils.hasText(studentNumber)) {
-            return false; // 学号为空不进行检查
-        }
+        if (!StringUtils.hasText(studentNumber)) return false;
         LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Student::getStudentNumber, studentNumber);
         if (studentId != null) {
@@ -58,142 +163,73 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         return baseMapper.exists(queryWrapper);
     }
 
-    /**
-     * 根据用户ID查询学生信息。
-     *
-     * @param userId 用户ID
-     * @return Student 学生信息，如果不存在则返回null
-     */
     @Override
     public Student findByUserId(Long userId) {
-        if (userId == null) {
-            return null;
-        }
-        LambdaQueryWrapper<Student> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Student::getUserId, userId);
-        return baseMapper.selectOne(queryWrapper);
+        if (userId == null) return null;
+        return baseMapper.selectOne(new LambdaQueryWrapper<Student>().eq(Student::getUserId, userId));
     }
 
-    /**
-     * 获取学生信息
-     *
-     * @param id 学生ID
-     * @return 业务异常，如果学生不存在
-     */
     @Override
     public Student getStudentById(Long id) {
         Student student = baseMapper.selectById(id);
         if (student == null) {
-            throw new IllegalArgumentException("ID为 " + id + " 的学生不存在");
+            throw new BusinessException("ID为 " + id + " 的学生不存在");
         }
         return student;
     }
 
-    /**
-     * 检查学生是否属于指定班级
-     *
-     * @param studentId 学生ID
-     * @param classId 班级ID
-     * @return 如果学生属于该班级，则返回true，否则返回false
-     */
     @Override
     public boolean isStudentInClass(Long studentId, Long classId) {
-        if (studentId == null || classId == null) {
-            return false;
-        }
-        Student student = this.getStudentById(studentId);
+        if (studentId == null || classId == null) return false;
+        Student student = getStudentById(studentId);
         return classId.equals(student.getClassId());
     }
 
-    /**
-     * 查询当前登录学生的所有成绩
-     * <p>
-     * 1. 从Spring Security上下文中获取当前登录用户的ID。
-     * 2. 根据用户ID查找对应的学生信息。
-     * 3. 如果学生存在，则调用mapper查询其所有成绩。
-     * 4. 如果学生不存在或未登录，返回空列表。
-     * </p>
-     *
-     * @return List<StudentGradeDTO> 包含成绩详情的列表
-     */
     @Override
     public List<StudentGradeDTO> findMyGrades() {
-        // 1. 获取当前登录用户的认证信息
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
         if (principal instanceof SecurityUser securityUser) {
-            // 2. 根据用户ID查找学生信息
-            Long userId = securityUser.getUser().getId();
-            Student student = this.findByUserId(userId);
-
+            Student student = findByUserId(securityUser.getUser().getId());
             if (student != null) {
-                // 3. 调用mapper查询成绩
-                return baseMapper.findGradesByStudentId(student.getId());
+                return studentMapper.findGradesByStudentId(student.getId());
             }
         }
-
-        // 4. 如果用户未登录或不是学生，返回空列表
         return Collections.emptyList();
     }
 
-    /**
-     * 更新当前登录学生的个人信息
-     * <p>
-     * 1. 获取当前登录用户及关联的学生信息。
-     * 2. 使用DTO中的数据更新User和Student实体。
-     * 3. 在一个事务中同时更新users表和students表。
-     * </p>
-     *
-     * @param updateDTO 包含待更新信息的DTO
-     * @return boolean 更新是否成功
-     */
     @Override
     @Transactional
     public boolean updateMyProfile(StudentProfileUpdateDTO updateDTO) {
-        // 1. 获取当前登录用户信息
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!(principal instanceof SecurityUser securityUser)) {
-            throw new RuntimeException("无法获取当前用户信息");
+            throw new BusinessException("无法获取当前用户信息");
         }
-        User currentUser = securityUser.getUser();
+        User currentUser = userMapper.selectById(securityUser.getUser().getId());
         Student currentStudent = findByUserId(currentUser.getId());
-
         if (currentStudent == null) {
-            throw new RuntimeException("未找到当前用户的学生记录");
+            throw new BusinessException("未找到当前用户的学生记录");
         }
-
-        // 2. 更新User实体
+        
         currentUser.setEmail(updateDTO.getEmail());
         currentUser.setPhone(updateDTO.getPhone());
-        boolean userUpdated = userService.updateById(currentUser);
-
-        // 3. 更新Student实体
+        userMapper.updateById(currentUser);
+        
         currentStudent.setStudentName(updateDTO.getStudentName());
         currentStudent.setGender(updateDTO.getGender());
-        boolean studentUpdated = this.updateById(currentStudent);
-
-        return userUpdated && studentUpdated;
+        updateById(currentStudent);
+        
+        return true;
     }
 
-    /**
-     * 查询当前登录学生的所有课程信息
-     * <p>
-     * 1. 从Spring Security上下文中获取当前登录用户的ID。
-     * 2. 根据用户ID查找对应的学生信息。
-     * 3. 如果学生存在，则调用mapper查询其所有课程。
-     * </p>
-     *
-     * @return List<StudentCourseDTO> 包含课程详情的列表
-     */
     @Override
     public List<StudentCourseDTO> findMyCourses() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof SecurityUser securityUser) {
             Student student = findByUserId(securityUser.getUser().getId());
             if (student != null) {
-                return baseMapper.findCoursesByStudentId(student.getId());
+                return studentMapper.findCoursesByStudentId(student.getId());
             }
         }
         return Collections.emptyList();
     }
-} 
+}

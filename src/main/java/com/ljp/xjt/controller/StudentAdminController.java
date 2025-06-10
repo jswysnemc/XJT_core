@@ -1,8 +1,10 @@
 package com.ljp.xjt.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.StudentDTO;
 import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
@@ -181,19 +183,19 @@ public class StudentAdminController {
     /**
      * [管理员] 分页查询学生列表
      *
-     * @param pageNum       当前页码
-     * @param pageSize      每页数量
+     * @param current       当前页码
+     * @param size      每页数量
      * @param studentNumber 学号 (可选查询条件)
      * @param studentName   学生姓名 (可选查询条件)
      * @param classId       班级ID (可选查询条件)
-     * @return ApiResponse<Page<Student>> 分页后的学生列表
+     * @return ApiResponse<IPage<StudentDTO>> 分页后的学生列表（包含班级名称）
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "分页查询学生列表", description = "可根据学号、姓名、班级ID筛选。需要管理员权限。")
-    public ApiResponse<Page<Student>> listStudents(
-            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
+    public ApiResponse<IPage<StudentDTO>> listStudents(
+            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer current,
+            @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer size,
             @Parameter(description = "学号查询") @RequestParam(required = false) String studentNumber,
             @Parameter(description = "学生姓名查询") @RequestParam(required = false) String studentName,
             @Parameter(description = "班级ID查询") @RequestParam(required = false) Long classId) {
@@ -204,8 +206,8 @@ public class StudentAdminController {
                     .eq(classId != null, Student::getClassId, classId)
                     .orderByDesc(Student::getCreatedTime);
 
-        Page<Student> page = new Page<>(pageNum, pageSize);
-        studentService.page(page, queryWrapper);
-        return ApiResponse.success(page);
+        Page<Student> page = new Page<>(current, size);
+        IPage<StudentDTO> studentDTOPage = studentService.selectStudentPage(page, queryWrapper);
+        return ApiResponse.success(studentDTOPage);
     }
 } 

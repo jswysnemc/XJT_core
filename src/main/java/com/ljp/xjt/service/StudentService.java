@@ -1,25 +1,98 @@
 package com.ljp.xjt.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ljp.xjt.dto.*;
 import com.ljp.xjt.entity.Student;
-import com.ljp.xjt.dto.StudentGradeDTO;
-import com.ljp.xjt.dto.StudentProfileUpdateDTO;
-import com.ljp.xjt.dto.StudentCourseDTO;
 
 import java.util.List;
 
 /**
  * 学生服务接口
  * <p>
- * 继承自MyBatis Plus的IService，提供基础的学生管理业务操作。
- * 定义了针对学生模块的业务逻辑方法。
+ * 定义学生相关的业务逻辑
  * </p>
- *
+ * 
  * @author ljp
  * @version 1.0
- * @since 2025-05-29
+ * @since 2025-05-26
  */
 public interface StudentService extends IService<Student> {
+
+    /**
+     * 分页查询学生列表
+     *
+     * @param page 分页对象
+     * @param studentName 学生姓名（模糊查询）
+     * @return 学生分页数据
+     */
+    IPage<Student> list(Page<Student> page, String studentName);
+
+    /**
+     * 分页查询学生列表，并携带班级等详细信息
+     * @param page 分页对象
+     * @param queryWrapper 查询条件
+     * @return 包含详细信息的学生分页数据
+     */
+    IPage<StudentDTO> selectStudentPage(Page<Student> page, LambdaQueryWrapper<Student> queryWrapper);
+
+    /**
+     * 新增学生
+     *
+     * @param student 学生信息
+     * @return 是否成功
+     */
+    boolean saveStudent(Student student);
+
+    /**
+     * 更新学生
+     *
+     * @param student 学生信息
+     * @return 是否成功
+     */
+    boolean updateStudent(Student student);
+
+    /**
+     * 根据用户ID获取学生档案
+     *
+     * @param userId 用户ID
+     * @return 学生档案DTO
+     */
+    StudentProfileDTO getStudentProfileByUserId(Long userId);
+
+    /**
+     * 更新学生个人档案
+     *
+     * @param userId 用户ID
+     * @param studentProfileUpdateDTO 更新的档案信息
+     */
+    void updateStudentProfile(Long userId, StudentProfileUpdateDTO studentProfileUpdateDTO);
+
+    /**
+     * 获取学生的课程列表
+     *
+     * @param userId 用户ID
+     * @return 课程列表
+     */
+    List<StudentCourseDTO> getStudentCourses(Long userId);
+
+    /**
+     * 获取学生的成绩单
+     *
+     * @param userId 用户ID
+     * @return 成绩列表
+     */
+    List<StudentGradeDTO> getStudentGrades(Long userId);
+
+    /**
+     * 根据学生ID获取学生详细信息（包含班级名称）
+     *
+     * @param studentId 学生ID
+     * @return 学生详细信息DTO
+     */
+    StudentDetailDTO getStudentDetailById(Long studentId);
 
     /**
      * 检查学号是否已存在

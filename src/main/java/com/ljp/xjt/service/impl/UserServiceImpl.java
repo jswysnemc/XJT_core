@@ -17,7 +17,6 @@ import com.ljp.xjt.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +46,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final UserMapper userMapper;
     private final RoleMapper roleMapper;
     private final UserRoleMapper userRoleMapper;
-    private final @Lazy PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public User getUserByUsername(String username) {
@@ -92,11 +91,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public boolean updateUser(User user) {
+        // 1. 检查用户是否存在
         User existingUser = getById(user.getId());
         if (existingUser == null) {
             throw new BusinessException("用户不存在");
         }
-        // 检查邮箱和手机号是否与其他用户冲突
+        
+        // 2. 检查邮箱和手机号是否与其他用户冲突
         if (StringUtils.hasText(user.getEmail()) && !user.getEmail().equals(existingUser.getEmail()) && isEmailExists(user.getEmail())) {
             throw new BusinessException("邮箱已被其他用户使用");
         }
@@ -104,14 +105,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException("手机号已被其他用户使用");
         }
 
-        // 如果密码字段不为空，则更新密码
+        // 3. 如果密码字段不为空，则更新密码
         if (StringUtils.hasText(user.getPassword())) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         } else {
             // 否则，保持原有密码不变
             user.setPassword(existingUser.getPassword());
         }
-        return updateById(user);
+
+        // 4. 更新用户信息
+        boolean result = updateById(user);
+
+        // 5. 更新用户角色关联关系
+        // 只有当roles字段在请求中明确提供时才进行更新
+        if (user.getRoles() != null) {
+            // 5.1. 删除用户所有旧的角色
+            userRoleMapper.delete(new LambdaQueryWrapper<UserRole>().eq(UserRole::getUserId, user.getId()));
+
+            // 5.2. 如果新的角色列表不为空，则添加新的角色
+            if (!CollectionUtils.isEmpty(user.getRoles())) {
+                Set<Role> roles = user.getRoles();
+                for (Role role : roles) {
+                    if (role.getId() != null) {
+                        UserRole userRole = new UserRole();
+                        userRole.setUserId(user.getId());
+                        userRole.setRoleId(role.getId());
+                        userRoleMapper.insert(userRole);
+                    }
+                }
+            }
+        }
+        
+        return result;
     }
 
     @Override

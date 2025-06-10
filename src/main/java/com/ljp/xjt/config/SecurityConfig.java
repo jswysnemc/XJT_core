@@ -3,7 +3,6 @@ package com.ljp.xjt.config;
 import com.ljp.xjt.security.handler.JwtAccessDeniedHandler;
 import com.ljp.xjt.security.handler.JwtAuthenticationEntryPoint;
 import com.ljp.xjt.security.jwt.JwtAuthenticationFilter;
-import com.ljp.xjt.service.UserService;
 import com.ljp.xjt.service.impl.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -50,16 +49,6 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
-    }
-
-    /**
-     * 配置自定义的UserDetailsService
-     * 这里使用@Lazy确保它在需要时才被创建，帮助解决循环依赖
-     */
-    @Bean
-    @Lazy
-    public UserDetailsServiceImpl userDetailsServiceImpl(UserService userService) {
-        return new UserDetailsServiceImpl(userService);
     }
 
     /**

@@ -46,4 +46,48 @@
             class_id = #{classId}
     </select>
 
+    <select id="findGradesByStudentId" resultType="com.ljp.xjt.dto.StudentGradeDTO">
+        SELECT c.id,
+               c.course_name,
+               c.course_code,
+               c.credit,
+               g.score,
+               t.teacher_name
+        FROM grades g
+                 JOIN courses c ON g.course_id = c.id
+                 JOIN teachers t ON g.teacher_id = t.id
+        WHERE g.student_id = #{studentId}
+    </select>
+
+    <select id="findCoursesByStudentId" resultType="com.ljp.xjt.dto.StudentCourseDTO">
+        SELECT c.id,
+               c.course_name as courseName,
+               c.course_code as courseCode,
+               t.teacher_name as teacherName,
+               c.credit
+        FROM courses c
+                 JOIN teacher_course tc ON c.id = tc.course_id
+                 JOIN teachers t ON tc.teacher_id = t.id
+                 JOIN student_course sc ON c.id = sc.course_id
+        WHERE sc.student_id = #{studentId}
+    </select>
+
+    <select id="findStudentDetailById" resultType="com.ljp.xjt.dto.StudentDetailDTO">
+        SELECT
+            s.id,
+            s.user_id        as userId,
+            s.student_number as studentNumber,
+            s.student_name   as studentName,
+            s.gender,
+            s.birth_date     as birthDate,
+            s.class_id       as classId,
+            c.class_name     as className
+        FROM
+            students s
+        LEFT JOIN
+            classes c ON s.class_id = c.id
+        WHERE
+            s.id = #{studentId}
+    </select>
+
 </mapper> 

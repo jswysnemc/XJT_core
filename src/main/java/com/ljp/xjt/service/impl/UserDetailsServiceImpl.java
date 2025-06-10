@@ -1,8 +1,11 @@
 package com.ljp.xjt.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ljp.xjt.entity.Role;
 import com.ljp.xjt.entity.User;
+import com.ljp.xjt.mapper.RoleMapper;
+import com.ljp.xjt.mapper.UserMapper;
 import com.ljp.xjt.security.SecurityUser;
-import com.ljp.xjt.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,7 +33,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserService userService;
+    private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
 
     /**
      * 根据用户名加载用户信息
@@ -46,13 +50,14 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         // 1. 根据用户名从数据库查询用户信息
-        User user = userService.findByUsername(username);
+        User user = userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
         if (user == null) {
             throw new UsernameNotFoundException("用户 '" + username + "' 未找到");
         }
 
-        // 2. 构建权限集合 (这里暂时使用一个固定的"ROLE_USER"，后续应根据用户实际角色动态构建)
-        // Set<GrantedAuthority> authorities = Collections.singleton(new SimpleGrantedAuthority("ROLE_USER"));
+        // 2. 查询并设置用户的角色信息
+        Set<Role> roles = roleMapper.findRolesByUserId(user.getId());
+        user.setRoles(roles);
 
         Set<GrantedAuthority> authorities = new HashSet<>();
         if (user.getRoles() != null && !user.getRoles().isEmpty()) {
