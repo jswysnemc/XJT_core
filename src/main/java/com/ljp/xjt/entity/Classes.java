@@ -1,6 +1,7 @@
 package com.ljp.xjt.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -41,9 +42,11 @@ public class Classes {
     private Long advisorTeacherId;      // 班主任教师ID，外键
 
     @TableField(value = "created_time", fill = FieldFill.INSERT)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdTime;  // 创建时间
 
     @TableField(value = "updated_time", fill = FieldFill.INSERT_UPDATE)
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime updatedTime;  // 更新时间
 
 } 
