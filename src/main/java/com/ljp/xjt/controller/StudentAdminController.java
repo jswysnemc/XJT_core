@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.StudentCreateDTO;
 import com.ljp.xjt.dto.StudentDTO;
+import com.ljp.xjt.dto.StudentUpdateDTO;
 import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.entity.Grade;
+import com.ljp.xjt.service.ClassesService;
 import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.UserService;
 import com.ljp.xjt.service.UserRoleService;
@@ -46,6 +49,7 @@ public class StudentAdminController {
     private final UserService userService;
     private final UserRoleService userRoleService;
     private final GradeService gradeService;
+    private final ClassesService classesService;
 
     /**
      * [管理员] 获取未绑定任何学生记录的用户列表
@@ -63,44 +67,37 @@ public class StudentAdminController {
     }
 
     /**
-     * [管理员] 创建新学生信息
+     * [管理员] 创建新学生档案
+     * <p>
+     *     此接口仅创建学生的基本档案信息，不与任何用户或班级绑定。
+     *     创建后，可以后续进行用户绑定和班级分配。
+     * </p>
      *
-     * @param student 学生信息实体
+     * @param studentDTO 学生创建数据传输对象
      * @return ApiResponse<Student> 创建结果及创建后的学生信息
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "创建新学生", description = "创建一个新的学生记录，关联到用户表。需要管理员权限。")
-    public ApiResponse<Student> createStudent(@Valid @RequestBody Student student) {
+    @Operation(summary = "创建新学生档案", description = "创建一个新的学生记录，此时不关联用户和班级。需要管理员权限。")
+    public ApiResponse<Student> createStudent(@Valid @RequestBody StudentCreateDTO studentDTO) {
         // 1. 校验学号是否已存在
-        if (studentService.checkStudentNumberExists(student.getStudentNumber(), null)) {
+        if (studentService.checkStudentNumberExists(studentDTO.getStudentNumber(), null)) {
             return ApiResponse.error(400, "学号已存在");
         }
-        // 2. 校验关联的userId是否存在
-        if (student.getUserId() == null || userService.getById(student.getUserId()) == null) {
-            return ApiResponse.error(400, "关联的用户ID无效或用户不存在");
-        }
 
-        Long userId = student.getUserId();
-
-        // 检查用户是否已经有STUDENT角色
-        if (!userRoleService.hasRole(userId, "STUDENT")) {
-            log.info("User {} does not have student role, assigning it", userId);
-            if (!userRoleService.assignRoleByCode(userId, "STUDENT")) {
-                return ApiResponse.error(500, "分配学生角色失败");
-            }
-        }
-
-        // 检查用户是否已关联其他学生记录
-        Student existingStudent = studentService.findByUserId(userId);
-        if (existingStudent != null) {
-            log.warn("User {} is already associated with student record {}", userId, existingStudent.getId());
-            return ApiResponse.error(400, "该用户已关联到其他学生记录");
-        }
+        // 2. 将 DTO 转换为 Student 实体
+        Student student = new Student();
+        student.setStudentNumber(studentDTO.getStudentNumber());
+        student.setStudentName(studentDTO.getStudentName());
+        student.setGender(studentDTO.getGender());
+        student.setBirthDate(studentDTO.getBirthDate());
+        // 根据业务要求，初始创建时，不关联用户和班级
+        student.setUserId(null);
+        student.setClassId(null);
 
         // 3. 保存学生信息
         if (studentService.save(student)) {
-            log.info("Student record created successfully for user {}", userId);
+            log.info("Student record created successfully with student number {}", student.getStudentNumber());
             return ApiResponse.created(student);
         }
         return ApiResponse.error(500, "学生信息创建失败");
@@ -124,28 +121,40 @@ public class StudentAdminController {
      * [管理员] 更新学生信息
      *
      * @param id      学生记录ID
-     * @param student 更新后的学生信息实体
+     * @param studentDTO 更新后的学生信息实体
      * @return ApiResponse<Student> 更新结果及更新后的学生信息
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "更新学生信息", description = "根据学生记录ID更新信息。需要管理员权限。")
+    @Operation(summary = "更新学生信息", description = "根据学生记录ID更新信息。可用于分配班级。需要管理员权限。")
     public ApiResponse<Student> updateStudent(@Parameter(description = "学生记录ID") @PathVariable Long id,
-                                            @Valid @RequestBody Student student) {
-        // 1. 检查学生记录是否存在 (getStudentById会抛异常)
-        Student existingStudent = studentService.getStudentById(id);
-        
-        // 2. 校验更新后的学号是否与其它学生冲突
-        if (studentService.checkStudentNumberExists(student.getStudentNumber(), id)) {
-            return ApiResponse.error(400, "学号已存在");
+                                            @Valid @RequestBody StudentUpdateDTO studentDTO) {
+        // 1. 检查学生记录是否存在
+        Student existingStudent = studentService.getById(id);
+        if (existingStudent == null) {
+            return ApiResponse.error(404, "找不到指定的学生记录");
         }
         
-        // 3. 设置ID并更新
-        student.setId(id);
-        student.setUserId(existingStudent.getUserId()); // userId不允许更改
+        // 2. 校验更新后的学号是否与其它学生冲突
+        if (studentService.checkStudentNumberExists(studentDTO.getStudentNumber(), id)) {
+            return ApiResponse.error(400, "学号已存在");
+        }
 
-        if (studentService.updateById(student)) {
-            return ApiResponse.success("学生信息更新成功", studentService.getById(id));
+        // 3. 如果提供了班级ID，校验其有效性
+        if (studentDTO.getClassId() != null && classesService.getById(studentDTO.getClassId()) == null) {
+            return ApiResponse.error(400, "指定的班级ID无效或不存在");
+        }
+        
+        // 4. 使用 DTO 更新实体
+        existingStudent.setStudentNumber(studentDTO.getStudentNumber());
+        existingStudent.setStudentName(studentDTO.getStudentName());
+        existingStudent.setGender(studentDTO.getGender());
+        existingStudent.setBirthDate(studentDTO.getBirthDate());
+        existingStudent.setClassId(studentDTO.getClassId());
+        // userId 不允许通过此接口修改
+
+        if (studentService.updateById(existingStudent)) {
+            return ApiResponse.success("学生信息更新成功", existingStudent);
         }
         return ApiResponse.error(500, "学生信息更新失败");
     }
@@ -160,7 +169,10 @@ public class StudentAdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "删除学生信息", description = "根据学生记录ID删除学生信息。需要管理员权限。")
     public ApiResponse<Void> deleteStudent(@Parameter(description = "学生记录ID") @PathVariable Long id) {
-        Student existingStudent = studentService.getStudentById(id);
+        Student existingStudent = studentService.getById(id);
+        if (existingStudent == null) {
+            return ApiResponse.error(404, "找不到指定的学生记录");
+        }
         
         // 检查是否有关联的成绩记录
         long gradeCount = gradeService.count(new LambdaQueryWrapper<Grade>().eq(Grade::getStudentId, id));
@@ -174,8 +186,13 @@ public class StudentAdminController {
             return ApiResponse.error(500, "学生信息删除失败");
         }
         
-        log.info("Student record deleted successfully, removing student role from user {}", existingStudent.getUserId());
-        userRoleService.removeRoleByCode(existingStudent.getUserId(), "STUDENT");
+        // 如果学生已关联用户，则移除用户的学生角色
+        if (existingStudent.getUserId() != null) {
+            log.info("Student record {} deleted successfully, removing student role from user {}", id, existingStudent.getUserId());
+            userRoleService.removeRoleByCode(existingStudent.getUserId(), "STUDENT");
+        } else {
+            log.info("Student record {} deleted successfully. No user was associated.", id);
+        }
         
         return ApiResponse.success("学生信息删除成功", null);
     }
