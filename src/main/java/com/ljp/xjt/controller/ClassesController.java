@@ -8,8 +8,10 @@ import com.ljp.xjt.entity.Classes;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.CourseSchedule;
 import com.ljp.xjt.service.ClassesService;
+import com.ljp.xjt.service.MajorService;
 import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.CourseScheduleService;
+import com.ljp.xjt.service.TeacherService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -48,14 +50,20 @@ public class ClassesController {
     private final ClassesService classesService;
     private final StudentService studentService;
     private final CourseScheduleService courseScheduleService;
+    private final MajorService majorService;
+    private final TeacherService teacherService;
 
     @Autowired
     public ClassesController(ClassesService classesService, 
                            StudentService studentService,
-                           CourseScheduleService courseScheduleService) {
+                           CourseScheduleService courseScheduleService,
+                           MajorService majorService,
+                           TeacherService teacherService) {
         this.classesService = classesService;
         this.studentService = studentService;
         this.courseScheduleService = courseScheduleService;
+        this.majorService = majorService;
+        this.teacherService = teacherService;
     }
 
     /**
@@ -74,7 +82,18 @@ public class ClassesController {
         if (classesService.checkClassCodeExists(classes.getClassCode(), null)) {
             return ApiResponse.error(400, "班级编码已存在");
         }
-        // 2. 保存班级信息
+
+        // 2. 校验外键是否存在
+        if (majorService.getById(classes.getMajorId()) == null) {
+            return ApiResponse.error(400, "指定的专业ID不存在");
+        }
+        if (teacherService.getById(classes.getAdvisorTeacherId()) == null) {
+            return ApiResponse.error(400, "指定的班主任教师ID不存在");
+        }
+
+        // 3. 确保ID由后端生成，防止客户端传入ID
+        classes.setId(null);
+        // 4. 保存班级信息
         boolean success = classesService.save(classes);
         if (success) {
             return ApiResponse.created(classes);

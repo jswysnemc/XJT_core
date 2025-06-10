@@ -7,9 +7,9 @@ import lombok.EqualsAndHashCode;
 import java.time.LocalDateTime;
 
 /**
- * 课程安排实体类
+ * 教学任务分配实体类
  * <p>
- * 对应数据库表：course_schedules
+ * 对应数据库表：teaching_assignment
  * 存储课程安排信息，关联班级、课程和教师
  * </p>
  * 
@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
-@TableName("course_schedules")
+@TableName("teaching_assignments")
 public class CourseSchedule {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
