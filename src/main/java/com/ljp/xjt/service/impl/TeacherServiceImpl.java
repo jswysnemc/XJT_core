@@ -13,6 +13,7 @@ import com.ljp.xjt.dto.TeachingStatisticsDto;
 import com.ljp.xjt.dto.BatchGradeEntryDto;
 import com.ljp.xjt.dto.BatchGradeResponseDto;
 import com.ljp.xjt.dto.FailureDetailDto;
+import com.ljp.xjt.dto.TeacherCreateDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.entity.TeachingAssignment;
@@ -75,22 +76,35 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
     /**
      * 创建教师
      *
-     * @param teacher 教师信息
-     * @return 是否成功
+     * @param teacherCreateDTO 教师创建信息
+     * @return 创建后的教师实体
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public boolean createTeacher(Teacher teacher) {
-        log.info("Creating teacher: {}", teacher.getTeacherName());
-        
+    public Teacher createTeacher(TeacherCreateDTO teacherCreateDTO) {
+        log.info("Creating teacher profile: {}", teacherCreateDTO.getTeacherName());
+
         // 1. 检查教工号是否已存在
-        if (checkTeacherNumberExists(teacher.getTeacherNumber())) {
-            log.error("Teacher number already exists: {}", teacher.getTeacherNumber());
+        if (checkTeacherNumberExists(teacherCreateDTO.getTeacherNumber())) {
+            log.error("Teacher number already exists: {}", teacherCreateDTO.getTeacherNumber());
             throw new IllegalArgumentException("教工号已存在");
         }
         
-        // 2. 保存教师信息
-        return this.save(teacher);
+        // TODO: 部门存在性校验。当前缺少Department模块，暂时由数据库外键约束保证。
+
+        // 2. 转换DTO为实体
+        Teacher teacher = new Teacher();
+        teacher.setTeacherNumber(teacherCreateDTO.getTeacherNumber());
+        teacher.setTeacherName(teacherCreateDTO.getTeacherName());
+        teacher.setGender(teacherCreateDTO.getGender());
+        teacher.setTitle(teacherCreateDTO.getTitle());
+        teacher.setDepartmentId(teacherCreateDTO.getDepartmentId());
+        // 将 userId 显式设置为 null，因为此时只是创建教师档案，还未关联用户
+        teacher.setUserId(null);
+
+        // 3. 保存教师信息
+        this.save(teacher);
+        return teacher;
     }
 
     /**

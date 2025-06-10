@@ -3,6 +3,7 @@ package com.ljp.xjt.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ljp.xjt.dto.TeacherCreateDTO;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.dto.TeacherClassDto;
 import com.ljp.xjt.dto.TeacherCourseDto;
@@ -41,10 +42,10 @@ public interface TeacherService extends IService<Teacher> {
     /**
      * 创建教师
      *
-     * @param teacher 教师信息
-     * @return 是否成功
+     * @param teacherCreateDTO 教师创建信息
+     * @return 创建后的教师实体
      */
-    boolean createTeacher(Teacher teacher);
+    Teacher createTeacher(TeacherCreateDTO teacherCreateDTO);
 
     /**
      * 更新教师

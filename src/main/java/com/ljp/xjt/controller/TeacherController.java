@@ -10,6 +10,7 @@ import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.service.ClassesService;
 import com.ljp.xjt.service.CourseScheduleService;
 import com.ljp.xjt.service.TeacherService;
+import com.ljp.xjt.dto.TeacherCreateDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -105,21 +106,17 @@ public class TeacherController {
     /**
      * 创建新教师
      *
-     * @param teacher 教师信息
+     * @param teacherCreateDTO 教师创建信息
      * @return 创建结果
      */
     @PostMapping
-    @Operation(summary = "创建教师", description = "管理员创建新教师")
-    public ApiResponse<Teacher> createTeacher(@Valid @RequestBody Teacher teacher) {
-        log.info("Create new teacher: {}", teacher.getTeacherName());
+    @Operation(summary = "创建教师", description = "管理员创建新教师，此时不关联用户账号")
+    public ApiResponse<Teacher> createTeacher(@Valid @RequestBody TeacherCreateDTO teacherCreateDTO) {
+        log.info("Create new teacher profile: {}", teacherCreateDTO.getTeacherName());
         
         try {
-            boolean result = teacherService.createTeacher(teacher);
-            if (!result) {
-                return ApiResponse.error("教师创建失败");
-            }
-            
-            return ApiResponse.created(teacher);
+            Teacher newTeacher = teacherService.createTeacher(teacherCreateDTO);
+            return ApiResponse.created(newTeacher);
         } catch (IllegalArgumentException e) {
             return ApiResponse.error(e.getMessage());
         }
