@@ -3,6 +3,7 @@ package com.ljp.xjt.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.entity.Grade;
@@ -19,6 +20,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 学生管理控制器 (管理员)
@@ -41,6 +44,21 @@ public class StudentAdminController {
     private final UserService userService;
     private final UserRoleService userRoleService;
     private final GradeService gradeService;
+
+    /**
+     * [管理员] 获取未绑定任何学生记录的用户列表
+     * <p>
+     * 此接口用于在创建学生时，提供一个可选的、已存在但未被绑定的用户列表。
+     * 仅返回拥有 "STUDENT" 角色的用户。
+     *
+     * @return ApiResponse<List<UnboundUserDTO>>
+     */
+    @GetMapping("/unbound-users")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "获取未绑定的学生用户", description = "查询所有拥有学生角色但未关联任何学生信息的用户列表。")
+    public ApiResponse<List<UnboundUserDTO>> getUnboundStudentUsers() {
+        return ApiResponse.success(userService.findUnboundStudentUsers());
+    }
 
     /**
      * [管理员] 创建新学生信息

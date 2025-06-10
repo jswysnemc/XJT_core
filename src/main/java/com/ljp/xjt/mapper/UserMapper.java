@@ -1,9 +1,14 @@
 package com.ljp.xjt.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
+import java.util.Set;
 
 /**
  * 用户Mapper接口
@@ -42,5 +47,36 @@ public interface UserMapper extends BaseMapper<User> {
      * @return 用户信息
      */
     User selectByPhone(@Param("phone") String phone);
+
+    /**
+     * 根据用户名查询用户，并附带其角色信息
+     *
+     * @param username 用户名
+     * @return 用户信息
+     */
+    User findByUsernameWithRoles(@Param("username") String username);
+
+    /**
+     * 根据角色编码查询拥有该角色的所有用户ID
+     *
+     * @param roleCode 角色编码
+     * @return 用户ID集合
+     */
+    Set<Long> findUserIdsByRoleCode(@Param("roleCode") String roleCode);
+
+    /**
+     * 查询所有拥有学生角色但未绑定学生记录的用户
+     *
+     * @return List<UnboundUserDTO> 未绑定用户的列表
+     */
+    @Select("""
+            SELECT u.id, u.username
+            FROM users u
+            JOIN user_roles ur ON u.id = ur.user_id
+            JOIN roles r ON ur.role_id = r.id
+            WHERE r.role_code = 'STUDENT'
+            AND u.id NOT IN (SELECT s.user_id FROM students s WHERE s.user_id IS NOT NULL)
+            """)
+    List<UnboundUserDTO> findUnboundStudentUsers();
 
 } 

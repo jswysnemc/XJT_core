@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.ljp.xjt.common.exception.BusinessException;
+import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.mapper.RoleMapper;
 import com.ljp.xjt.mapper.UserMapper;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -188,19 +190,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional
     public void changePassword(User user, String oldPassword, String newPassword) {
-        // 1. 验证旧密码是否正确
         if (!passwordEncoder.matches(oldPassword, user.getPassword())) {
             throw new BusinessException("旧密码不正确");
         }
-
-        // 2. 验证新密码是否与旧密码相同
-        if (oldPassword.equals(newPassword)) {
-            throw new BusinessException("新密码不能与旧密码相同");
-        }
-
-        // 3. 更新密码
         user.setPassword(passwordEncoder.encode(newPassword));
-        updateById(user);
+        baseMapper.updateById(user);
+    }
+
+    @Override
+    public List<UnboundUserDTO> findUnboundStudentUsers() {
+        return baseMapper.findUnboundStudentUsers();
     }
 
 } 

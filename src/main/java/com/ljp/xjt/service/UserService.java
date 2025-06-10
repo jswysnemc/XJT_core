@@ -3,7 +3,11 @@ package com.ljp.xjt.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.ljp.xjt.dto.UnboundUserDTO;
 import com.ljp.xjt.entity.User;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.List;
 
 /**
  * 用户服务接口
@@ -130,5 +134,12 @@ public interface UserService extends IService<User> {
      * @param newPassword
      */
     void changePassword(User user, String oldPassword, String newPassword);
+
+    /**
+     * 查询未绑定学生的用户
+     *
+     * @return List<UnboundUserDTO>
+     */
+    List<UnboundUserDTO> findUnboundStudentUsers();
 
 } 
