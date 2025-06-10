@@ -2,6 +2,7 @@ package com.ljp.xjt.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Course;
+import java.util.List;
 
 /**
  * 课程服务接口
@@ -33,6 +34,14 @@ public interface CourseService extends IService<Course> {
      * @return boolean 如果存在则返回true，否则返回false
      */
     boolean checkCourseCodeExists(String courseCode, Long courseId);
+
+    /**
+     * 根据班级ID查询该班级的所有课程
+     *
+     * @param classId 班级ID
+     * @return 课程列表
+     */
+    List<Course> findCoursesByClassId(Long classId);
 
     // 未来可以添加更多业务方法，例如：
     // List<Course> findCoursesByTeacherId(Long teacherId);

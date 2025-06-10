@@ -91,7 +91,6 @@ public class TeacherServiceImpl extends ServiceImpl<TeacherMapper, Teacher> impl
             throw new IllegalArgumentException("教工号已存在");
         }
         
-        // TODO: 部门存在性校验。当前缺少Department模块，暂时由数据库外键约束保证。
 
         // 2. 转换DTO为实体
         Teacher teacher = new Teacher();

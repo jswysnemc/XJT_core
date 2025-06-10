@@ -15,6 +15,7 @@ import com.ljp.xjt.service.MajorService;
 import com.ljp.xjt.service.StudentService;
 import com.ljp.xjt.service.CourseScheduleService;
 import com.ljp.xjt.service.TeacherService;
+import com.ljp.xjt.service.CourseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -55,18 +56,21 @@ public class ClassesController {
     private final CourseScheduleService courseScheduleService;
     private final MajorService majorService;
     private final TeacherService teacherService;
+    private final CourseService courseService;
 
     @Autowired
     public ClassesController(ClassesService classesService,
                            StudentService studentService,
                            CourseScheduleService courseScheduleService,
                            MajorService majorService,
-                           TeacherService teacherService) {
+                           TeacherService teacherService,
+                           CourseService courseService) {
         this.classesService = classesService;
         this.studentService = studentService;
         this.courseScheduleService = courseScheduleService;
         this.majorService = majorService;
         this.teacherService = teacherService;
+        this.courseService = courseService;
     }
 
     /**
@@ -148,6 +152,26 @@ public class ClassesController {
         // 2. 调用服务查询学生列表
         List<StudentDTO> students = studentService.findStudentsByClassId(classId);
         return ApiResponse.success(students);
+    }
+
+    /**
+     * 获取指定班级下的所有课程
+     *
+     * @param classId 班级ID
+     * @return ApiResponse<List<Course>> 课程列表
+     */
+    @GetMapping("/{classId}/courses")
+    @Operation(summary = "获取指定班级的所有课程", description = "根据班级ID查询其开设的所有课程列表。")
+    public ApiResponse<List<com.ljp.xjt.entity.Course>> getCoursesByClass(@Parameter(description = "班级ID") @PathVariable Long classId) {
+        // 1. 检查班级是否存在，确保请求的资源是有效的
+        Classes targetClass = classesService.getById(classId);
+        if (targetClass == null) {
+            return ApiResponse.error(404, "指定的班级不存在");
+        }
+
+        // 2. 调用服务查询课程列表
+        List<com.ljp.xjt.entity.Course> courses = courseService.findCoursesByClassId(classId);
+        return ApiResponse.success(courses);
     }
 
     /**

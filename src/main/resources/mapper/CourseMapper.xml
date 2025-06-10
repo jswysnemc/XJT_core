@@ -21,4 +21,17 @@
 
     <!-- 如果有自定义SQL，可以在这里添加 -->
 
+    <select id="findCoursesByClassId" resultType="com.ljp.xjt.entity.Course">
+        SELECT DISTINCT
+            c.*
+        FROM
+            courses c
+        JOIN
+            teaching_assignments ta ON c.id = ta.course_id
+        WHERE
+            ta.class_id = #{classId}
+        ORDER BY
+            c.course_code ASC
+    </select>
+
 </mapper> 

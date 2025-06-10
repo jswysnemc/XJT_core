@@ -7,6 +7,9 @@ import com.ljp.xjt.mapper.CourseMapper;
 import com.ljp.xjt.service.CourseService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.List;
 
 /**
  * 课程服务实现类
@@ -21,6 +24,8 @@ import org.springframework.util.StringUtils;
  */
 @Service
 public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> implements CourseService {
+
+    private static final Logger log = LoggerFactory.getLogger(CourseServiceImpl.class);
 
     /**
      * 检查课程名称是否已存在。
@@ -62,5 +67,11 @@ public class CourseServiceImpl extends ServiceImpl<CourseMapper, Course> impleme
             queryWrapper.ne(Course::getId, courseId);
         }
         return baseMapper.exists(queryWrapper);
+    }
+
+    @Override
+    public List<Course> findCoursesByClassId(Long classId) {
+        log.info("Finding courses for classId: {}", classId);
+        return baseMapper.findCoursesByClassId(classId);
     }
 } 
