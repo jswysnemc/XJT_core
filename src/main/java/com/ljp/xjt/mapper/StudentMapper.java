@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.dto.StudentGradeDTO;
+import com.ljp.xjt.dto.StudentCourseDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -141,6 +142,40 @@ public interface StudentMapper extends BaseMapper<Student> {
                 g.semester DESC, c.course_name ASC
             """)
     List<StudentGradeDTO> findGradesByStudentId(@Param("studentId") Long studentId);
+
+    /**
+     * 根据学生ID查询其所有课程信息
+     * <p>
+     * 该查询通过学生的班级ID，关联教学安排来获取完整的课程列表，
+     * 包括课程详情和授课教师，但不包含成绩。
+     * </p>
+     *
+     * @param studentId 学生ID
+     * @return List<StudentCourseDTO> 包含学生课程详情的列表
+     */
+    @Select("""
+            SELECT
+                ta.year,
+                ta.semester,
+                c.course_name   AS courseName,
+                c.course_code   AS courseCode,
+                c.credits,
+                c.hours         AS courseHours,
+                t.teacher_name  AS teacherName
+            FROM
+                students s
+            JOIN
+                teaching_assignments ta ON s.class_id = ta.class_id
+            JOIN
+                courses c ON ta.course_id = c.id
+            JOIN
+                teachers t ON ta.teacher_id = t.id
+            WHERE
+                s.id = #{studentId}
+            ORDER BY
+                ta.year DESC, ta.semester DESC, c.course_name ASC
+            """)
+    List<StudentCourseDTO> findCoursesByStudentId(@Param("studentId") Long studentId);
 
     // 如果需要自定义SQL查询，可以在这里添加方法声明
     // 例如：根据学号查询学生信息

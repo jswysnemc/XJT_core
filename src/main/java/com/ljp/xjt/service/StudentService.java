@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.dto.StudentProfileUpdateDTO;
+import com.ljp.xjt.dto.StudentCourseDTO;
 
 import java.util.List;
 
@@ -68,6 +69,13 @@ public interface StudentService extends IService<Student> {
      * @return boolean 更新是否成功
      */
     boolean updateMyProfile(StudentProfileUpdateDTO updateDTO);
+
+    /**
+     * 查询当前登录学生的所有课程信息
+     *
+     * @return List<StudentCourseDTO> 包含课程详情的列表
+     */
+    List<StudentCourseDTO> findMyCourses();
 
     // 未来可以添加更多业务方法，例如：
     // Page<StudentDTO> findStudentsWithDetails(Page<Student> page, StudentQueryParam queryParam);

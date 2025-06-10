@@ -2,6 +2,7 @@ package com.ljp.xjt.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.ljp.xjt.dto.StudentCourseDTO;
 import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.dto.StudentProfileUpdateDTO;
 import com.ljp.xjt.entity.Student;
@@ -172,5 +173,27 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         boolean studentUpdated = this.updateById(currentStudent);
 
         return userUpdated && studentUpdated;
+    }
+
+    /**
+     * 查询当前登录学生的所有课程信息
+     * <p>
+     * 1. 从Spring Security上下文中获取当前登录用户的ID。
+     * 2. 根据用户ID查找对应的学生信息。
+     * 3. 如果学生存在，则调用mapper查询其所有课程。
+     * </p>
+     *
+     * @return List<StudentCourseDTO> 包含课程详情的列表
+     */
+    @Override
+    public List<StudentCourseDTO> findMyCourses() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof SecurityUser securityUser) {
+            Student student = findByUserId(securityUser.getUser().getId());
+            if (student != null) {
+                return baseMapper.findCoursesByStudentId(student.getId());
+            }
+        }
+        return Collections.emptyList();
     }
 } 

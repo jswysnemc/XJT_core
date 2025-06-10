@@ -1,6 +1,7 @@
 package com.ljp.xjt.controller;
 
 import com.ljp.xjt.common.ApiResponse;
+import com.ljp.xjt.dto.StudentCourseDTO;
 import com.ljp.xjt.dto.StudentGradeDTO;
 import com.ljp.xjt.dto.StudentProfileDTO;
 import com.ljp.xjt.dto.StudentProfileUpdateDTO;
@@ -116,5 +117,22 @@ public class StudentRoleController {
     public ApiResponse<List<StudentGradeDTO>> getMyGrades() {
         List<StudentGradeDTO> grades = studentService.findMyGrades();
         return ApiResponse.success(grades);
+    }
+
+    /**
+     * 查询当前登录学生的所有课程信息
+     * <p>
+     * 此接口供学生角色调用，用于查询自己的全部课程安排。
+     * 返回数据包含课程、教师、学期等详细信息，不包含成绩。
+     * </p>
+     *
+     * @return ApiResponse<List<StudentCourseDTO>> 包含学生课程列表的API响应
+     */
+    @GetMapping("/courses")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "查询我的课程", description = "获取当前登录学生的所有课程安排详情")
+    public ApiResponse<List<StudentCourseDTO>> getMyCourses() {
+        List<StudentCourseDTO> courses = studentService.findMyCourses();
+        return ApiResponse.success(courses);
     }
 } 
