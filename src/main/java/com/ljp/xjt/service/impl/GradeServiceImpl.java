@@ -14,6 +14,7 @@ import com.ljp.xjt.mapper.GradeMapper;
 import com.ljp.xjt.mapper.StudentMapper;
 import com.ljp.xjt.mapper.TeachingAssignmentMapper;
 import com.ljp.xjt.service.GradeService;
+import com.ljp.xjt.utils.GpaUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
 
     private final StudentMapper studentMapper;
     private final TeachingAssignmentMapper teachingAssignmentMapper;
+    private final GradeMapper gradeMapper;
 
     /**
      * 录入成绩
@@ -485,16 +487,22 @@ public class GradeServiceImpl extends ServiceImpl<GradeMapper, Grade> implements
     }
 
     @Override
-    public IPage<AdminGradeDto> getGradesByAdminCriteria(Page<AdminGradeDto> page, Long classId, Long courseId, String studentName, String studentNumber) {
-        // 1. 调用Mapper进行数据库查询
-        IPage<AdminGradeDto> gradePage = baseMapper.findGradesByAdminCriteria(page, classId, courseId, studentName, studentNumber);
+    public IPage<AdminGradeDto> getGradesByAdminCriteria(
+            Page<AdminGradeDto> page,
+            Long classId,
+            Long courseId,
+            String studentName,
+            String studentNumber) {
+        log.info("Admin querying grades with criteria - classId: {}, courseId: {}, studentName: '{}', studentNumber: '{}'",
+                classId, courseId, studentName, studentNumber);
+        IPage<AdminGradeDto> gradePage = gradeMapper.getGradesByAdminCriteria(page, classId, courseId, studentName, studentNumber);
 
-        // 2. 对查询结果进行二次处理，计算GPA和判断成绩是否正常
+        // 对查询结果进行二次处理，计算GPA和判断成绩是否正常
         gradePage.getRecords().forEach(grade -> {
-            grade.setGpa(calculateGpa(grade.getScore()));
-            grade.setNormal(isScoreNormal(grade.getScore()));
+            grade.setGpa(GpaUtil.calculateGpa(grade.getScore()));
+            grade.setNormal(GpaUtil.isScoreNormal(grade.getScore()));
         });
-
+        
         return gradePage;
     }
 

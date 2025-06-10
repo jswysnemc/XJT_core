@@ -1,11 +1,9 @@
 package com.ljp.xjt.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ljp.xjt.common.ApiResponse;
 import com.ljp.xjt.dto.TeacherProfileDto;
 import com.ljp.xjt.dto.TeacherProfileUpdateRequestDto;
 import com.ljp.xjt.dto.TeachingStatisticsDto;
-import com.ljp.xjt.entity.Student;
 import com.ljp.xjt.entity.Teacher;
 import com.ljp.xjt.entity.User;
 import com.ljp.xjt.service.StudentService;
@@ -21,11 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 
 /**
  * 教师个人资料控制器

@@ -8,6 +8,7 @@ import com.ljp.xjt.entity.Grade;
 import com.ljp.xjt.entity.TeachingAssignment;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 import java.util.Map;
@@ -115,7 +116,7 @@ public interface GradeMapper extends BaseMapper<Grade> {
      * @param studentNumber 学号 (模糊查询)
      * @return 分页后的成绩列表
      */
-    IPage<AdminGradeDto> findGradesByAdminCriteria(
+    IPage<AdminGradeDto> getGradesByAdminCriteria(
             Page<AdminGradeDto> page,
             @Param("classId") Long classId,
             @Param("courseId") Long courseId,
@@ -126,5 +127,8 @@ public interface GradeMapper extends BaseMapper<Grade> {
     int updateByStudentAndCourse(@Param("grade") Grade grade);
 
     List<Grade> findGradesByClassAndCourse(@Param("classId") Long classId, @Param("courseId") Long courseId);
+
+    @Select("SELECT * FROM grades WHERE student_id = #{studentId} AND course_id = #{courseId} LIMIT 1")
+    Grade findByStudentAndCourse(@Param("studentId") Long studentId, @Param("courseId") Long courseId);
 
 } 

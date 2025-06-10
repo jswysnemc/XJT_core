@@ -42,15 +42,16 @@
     </select>
 
     <!-- 根据管理员筛选条件分页查询成绩列表 -->
-    <select id="findGradesByAdminCriteria" resultType="com.ljp.xjt.dto.AdminGradeDto">
+    <select id="getGradesByAdminCriteria" resultType="com.ljp.xjt.dto.AdminGradeDto">
         SELECT
             g.id,
             s.student_name AS studentName,
             s.student_number AS studentNumber,
-            c.class_name AS className,
-            co.course_name AS courseName,
+            cls.class_name AS className,
+            c.course_name AS courseName,
             t.teacher_name AS teacherName,
             g.score,
+            g.is_abnormal AS isNormal,
             g.is_reviewed AS isReviewed,
             g.updated_time AS updatedAt
         FROM
@@ -58,11 +59,13 @@
         JOIN
             students s ON g.student_id = s.id
         JOIN
-            courses co ON g.course_id = co.id
+            courses c ON g.course_id = c.id
         LEFT JOIN
-            classes c ON s.class_id = c.id
+            classes cls ON s.class_id = cls.id
         LEFT JOIN
-            teachers t ON g.updated_by_teacher_id = t.id
+            teaching_assignments ta ON g.course_id = ta.course_id AND s.class_id = ta.class_id
+        LEFT JOIN
+            teachers t ON ta.teacher_id = t.id
         <where>
             <if test="classId != null">
                 AND s.class_id = #{classId}
@@ -77,7 +80,8 @@
                 AND s.student_number LIKE CONCAT('%', #{studentNumber}, '%')
             </if>
         </where>
-        ORDER BY g.updated_time DESC
+        ORDER BY
+            g.updated_time DESC
     </select>
 
     <update id="updateGrade" parameterType="com.ljp.xjt.entity.Grade">
