@@ -123,4 +123,8 @@ public interface GradeMapper extends BaseMapper<Grade> {
             @Param("studentNumber") String studentNumber
     );
 
+    int updateByStudentAndCourse(@Param("grade") Grade grade);
+
+    List<Grade> findGradesByClassAndCourse(@Param("classId") Long classId, @Param("courseId") Long courseId);
+
 } 

@@ -80,4 +80,25 @@
         ORDER BY g.updated_time DESC
     </select>
 
+    <update id="updateGrade" parameterType="com.ljp.xjt.entity.Grade">
+        UPDATE grades
+        <set>
+            <if test="score != null">score = #{score},</if>
+            <if test="updatedByTeacherId != null">updated_by_teacher_id = #{updatedByTeacherId},</if>
+            <if test="updatedTime != null">updated_time = #{updatedTime}</if>
+        </set>
+        WHERE student_id = #{studentId} AND course_id = #{courseId}
+    </update>
+
+    <select id="findGradesByClassAndCourse" resultType="com.ljp.xjt.entity.Grade">
+        SELECT
+            g.*
+        FROM
+            grades g
+        JOIN
+            students s ON g.student_id = s.id
+        WHERE
+            s.class_id = #{classId} AND g.course_id = #{courseId}
+    </select>
+
 </mapper>
