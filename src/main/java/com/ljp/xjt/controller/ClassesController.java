@@ -177,8 +177,8 @@ public class ClassesController {
     /**
      * 分页查询班级列表
      *
-     * @param pageNum    当前页码
-     * @param pageSize   每页数量
+     * @param current    当前页码
+     * @param size   每页数量
      * @param className  班级名称 (可选查询条件)
      * @param classCode  班级编码 (可选查询条件)
      * @param gradeYear  年级 (可选查询条件)
@@ -187,8 +187,8 @@ public class ClassesController {
     @GetMapping
     @Operation(summary = "分页查询班级列表", description = "可根据班级名称、编码、年级进行筛选")
     public ApiResponse<Page<ClassDto>> listClasses(
-            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer pageNum,
-            @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer pageSize,
+            @Parameter(description = "页码", example = "1") @RequestParam(defaultValue = "1") Integer current,
+            @Parameter(description = "每页数量", example = "10") @RequestParam(defaultValue = "10") Integer size,
             @Parameter(description = "班级名称查询") @RequestParam(required = false) String className,
             @Parameter(description = "班级编码查询") @RequestParam(required = false) String classCode,
             @Parameter(description = "年级查询") @RequestParam(required = false) Integer gradeYear) {
@@ -199,7 +199,7 @@ public class ClassesController {
                     .eq(gradeYear != null, Classes::getGradeYear, gradeYear)
                     .orderByDesc(Classes::getCreatedTime); // 默认按创建时间降序
 
-        Page<Classes> page = new Page<>(pageNum, pageSize);
+        Page<Classes> page = new Page<>(current, size);
         Page<ClassDto> dtoPage = classesService.selectPageWithMajor(page, queryWrapper);
         return ApiResponse.success(dtoPage);
     }
