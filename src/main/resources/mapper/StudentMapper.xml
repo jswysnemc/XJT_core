@@ -50,26 +50,33 @@
         SELECT c.id,
                c.course_name,
                c.course_code,
-               c.credit,
+               c.credits,
+               c.hours as courseHours,
                g.score,
+               g.semester,
                t.teacher_name
         FROM grades g
                  JOIN courses c ON g.course_id = c.id
-                 JOIN teachers t ON g.teacher_id = t.id
+                 JOIN students s ON g.student_id = s.id
+                 LEFT JOIN teaching_assignments ta ON g.course_id = ta.course_id AND s.class_id = ta.class_id
+                 LEFT JOIN teachers t ON ta.teacher_id = t.id
         WHERE g.student_id = #{studentId}
     </select>
 
     <select id="findCoursesByStudentId" resultType="com.ljp.xjt.dto.StudentCourseDTO">
-        SELECT c.id,
-               c.course_name as courseName,
-               c.course_code as courseCode,
-               t.teacher_name as teacherName,
-               c.credit
+        SELECT DISTINCT c.id,
+                        c.course_name  as courseName,
+                        c.course_code  as courseCode,
+                        c.credits,
+                        c.hours as courseHours,
+                        t.teacher_name as teacherName,
+                        ta.semester,
+                        ta.year
         FROM courses c
-                 JOIN teacher_course tc ON c.id = tc.course_id
-                 JOIN teachers t ON tc.teacher_id = t.id
-                 JOIN student_course sc ON c.id = sc.course_id
-        WHERE sc.student_id = #{studentId}
+                 JOIN teaching_assignments ta ON c.id = ta.course_id
+                 JOIN teachers t ON ta.teacher_id = t.id
+                 JOIN students s ON ta.class_id = s.class_id
+        WHERE s.id = #{studentId}
     </select>
 
     <select id="findStudentDetailById" resultType="com.ljp.xjt.dto.StudentDetailDTO">
