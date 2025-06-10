@@ -119,4 +119,13 @@
         ORDER BY s.created_time DESC
     </select>
 
+    <update id="setClassIdToNullByIds">
+        UPDATE students
+        SET class_id = NULL
+        WHERE id IN
+        <foreach item="item" index="index" collection="studentIds" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
 </mapper> 

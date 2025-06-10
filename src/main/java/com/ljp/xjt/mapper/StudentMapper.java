@@ -189,6 +189,14 @@ public interface StudentMapper extends BaseMapper<Student> {
 
     IPage<StudentDTO> selectPageWithDetails(IPage<Student> page, @Param("studentNumber") String studentNumber, @Param("studentName") String studentName, @Param("classId") Long classId);
 
+    /**
+     * 批量将学生的class_id设置为null
+     *
+     * @param studentIds 学生ID列表
+     * @return 受影响的行数
+     */
+    int setClassIdToNullByIds(@Param("studentIds") List<Long> studentIds);
+
     // 如果需要自定义SQL查询，可以在这里添加方法声明
     // 例如：根据学号查询学生信息
     // Student findByStudentNumber(@Param("studentNumber") String studentNumber);

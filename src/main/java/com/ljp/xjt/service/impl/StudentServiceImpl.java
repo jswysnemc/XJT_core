@@ -351,9 +351,9 @@ public class StudentServiceImpl extends ServiceImpl<StudentMapper, Student> impl
         }
 
         // 5. 批量更新
-        this.updateBatchById(studentsToUpdate);
-
-        return studentsToUpdate.size();
+        // this.updateBatchById(studentsToUpdate);
+        
+        return studentMapper.setClassIdToNullByIds(studentIds);
     }
 
     @Override
