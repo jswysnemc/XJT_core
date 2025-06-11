@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ljp.xjt.mapper.TeachingAssignmentMapper">
+
+    <resultMap id="DetailedAssignmentResultMap" type="com.ljp.xjt.dto.TeachingAssignmentDto">
+        <id property="id" column="ta_id"/>
+        <result property="teacherId" column="t_id"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="courseId" column="c_id"/>
+        <result property="courseName" column="course_name"/>
+        <result property="classId" column="cl_id"/>
+        <result property="className" column="class_name"/>
+        <result property="semester" column="semester"/>
+        <result property="year" column="year"/>
+    </resultMap>
+
+    <select id="selectDetailedAssignments" resultMap="DetailedAssignmentResultMap">
+        SELECT
+            ta.id AS ta_id,
+            t.id AS t_id,
+            t.teacher_name,
+            c.id AS c_id,
+            c.course_name,
+            cl.id AS cl_id,
+            cl.class_name,
+            ta.semester,
+            ta.year
+        FROM
+            teaching_assignments ta
+        JOIN
+            teachers t ON ta.teacher_id = t.id
+        JOIN
+            courses c ON ta.course_id = c.id
+        JOIN
+            classes cl ON ta.class_id = cl.id
+        <where>
+            <if test="courseName != null and courseName != ''">
+                AND c.course_name LIKE CONCAT('%', #{courseName}, '%')
+            </if>
+            <if test="teacherName != null and teacherName != ''">
+                AND t.teacher_name LIKE CONCAT('%', #{teacherName}, '%')
+            </if>
+            <if test="className != null and className != ''">
+                AND cl.class_name LIKE CONCAT('%', #{className}, '%')
+            </if>
+        </where>
+        ORDER BY ta.year DESC, ta.semester DESC, ta.id DESC
+    </select>
+
+    <select id="selectUnassignedCourses" resultType="com.ljp.xjt.entity.Course">
+        SELECT
+            c.*
+        FROM
+            courses c
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM teaching_assignments ta
+            WHERE ta.course_id = c.id
+        )
+        ORDER BY c.course_code
+    </select>
+
+</mapper> 
