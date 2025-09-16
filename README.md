@@ -91,6 +91,7 @@
   pnpm dev              # 本地开发，默认 http://localhost:5173
   pnpm build            # 生成 dist/ 静态资源
   pnpm preview          # 预览构建产物
+```
 
   - vite.config.ts 已配置 /api 代理到 http://localhost:8080，如部署后端于其他地址请同步修改或配置反向代理。
   - 构建输出 dist/ 可交由 Nginx/静态资源服务托管。
