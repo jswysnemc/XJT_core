@@ -1,5 +1,4 @@
 
-
   # XJT 学生成绩管理系统
 
   ## 1. 项目简介
@@ -12,7 +11,11 @@
   - **支撑**：Docker/MySQL、Redis、pnpm(npm/yarn)、Maven、Node.js ≥ 18、JDK 17
 
   ## 3. 仓库结构
+```
 
+```
+
+```
   XJT/
   ├── XJT_core_service/           # Spring Boot 后端
   │   ├── pom.xml
@@ -39,6 +42,7 @@
   │   ├── utils/              # Axios 实例、工具函数
   │   └── views/              # 角色视图页
   └── vite.config.ts
+```
 
 
   ## 4. 功能模块
